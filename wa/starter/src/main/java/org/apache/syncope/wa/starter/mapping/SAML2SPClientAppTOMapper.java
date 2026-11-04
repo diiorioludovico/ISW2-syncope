@@ -1,0 +1,113 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.wa.starter.mapping;
+
+import java.util.Optional;
+import org.apache.syncope.common.lib.to.ClientAppTO;
+import org.apache.syncope.common.lib.to.SAML2SPClientAppTO;
+import org.apache.syncope.common.lib.wa.WAClientApp;
+import org.apache.syncope.common.rest.api.service.SAML2IdPEntityService;
+import org.apereo.cas.configuration.support.TriStateBoolean;
+import org.apereo.cas.services.RegisteredService;
+import org.apereo.cas.services.RegisteredServiceAccessStrategy;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicy;
+import org.apereo.cas.services.RegisteredServiceAuthenticationPolicy;
+import org.apereo.cas.services.RegisteredServiceMultifactorPolicy;
+import org.apereo.cas.services.RegisteredServiceProxyGrantingTicketExpirationPolicy;
+import org.apereo.cas.services.RegisteredServiceProxyTicketExpirationPolicy;
+import org.apereo.cas.services.RegisteredServiceServiceTicketExpirationPolicy;
+import org.apereo.cas.services.RegisteredServiceTicketGrantingTicketExpirationPolicy;
+import org.apereo.cas.support.saml.services.SamlRegisteredService;
+
+public class SAML2SPClientAppTOMapper extends AbstractClientAppMapper {
+
+    @Override
+    public boolean supports(final ClientAppTO clientApp) {
+        return SAML2SPClientAppTO.class.equals(clientApp.getClass());
+    }
+
+    @Override
+    public RegisteredService map(
+            final WAClientApp clientApp,
+            final RegisteredServiceAuthenticationPolicy authPolicy,
+            final RegisteredServiceMultifactorPolicy mfaPolicy,
+            final RegisteredServiceAccessStrategy accessStrategy,
+            final RegisteredServiceAttributeReleasePolicy attributeReleasePolicy,
+            final RegisteredServiceTicketGrantingTicketExpirationPolicy tgtExpirationPolicy,
+            final RegisteredServiceServiceTicketExpirationPolicy stExpirationPolicy,
+            final RegisteredServiceProxyGrantingTicketExpirationPolicy tgtProxyExpirationPolicy,
+            final RegisteredServiceProxyTicketExpirationPolicy stProxyExpirationPolicy) {
+
+        SAML2SPClientAppTO sp = SAML2SPClientAppTO.class.cast(clientApp.getClientAppTO());
+        SamlRegisteredService service = new SamlRegisteredService();
+        setCommon(service, sp);
+
+        service.setServiceId(sp.getEntityId());
+
+        if (sp.getIdp() != null && !SAML2IdPEntityService.DEFAULT_OWNER.equals(sp.getIdp())) {
+            service.setIdpMetadataLocation(sp.getIdp());
+        }
+
+        service.setMetadataLocation(sp.getMetadataLocation());
+        service.setMetadataSignatureLocation(sp.getMetadataSignatureLocation());
+        service.setSignAssertions(TriStateBoolean.fromBoolean(sp.isSignAssertions()));
+        service.setSignResponses(TriStateBoolean.fromBoolean(sp.isSignResponses()));
+        service.setEncryptionOptional(sp.isEncryptionOptional());
+        service.setEncryptAssertions(sp.isEncryptAssertions());
+        service.setSubjectLocality(sp.getSubjectLocality());
+        service.setLogoutResponseBinding(
+            Optional.ofNullable(sp.getLogoutResponseBinding()).map(Enum::name).orElse(null));
+        service.setMetadataCriteriaDirection(sp.getMetadataCriteriaDirection().name());
+        service.setMetadataCriteriaPattern(sp.getMetadataCriteriaPattern());
+        service.setSigningCredentialType(
+            Optional.ofNullable(sp.getSigningCredentialType()).map(Enum::name).orElse(null));
+        service.setEncryptAttributes(sp.isEncryptAttributes());
+        service.setRequireSignedRoot(sp.isRequireSignedRoot());
+        service.setLogoutResponseEnabled(sp.isLogoutResponseEnabled());
+        service.setSkipGeneratingAssertionNameId(sp.isSkipGeneratingAssertionNameId());
+        service.setSkipGeneratingSubjectConfirmationInResponseTo(sp.isSkipGeneratingSubjectConfirmationInResponseTo());
+        service.setSkipGeneratingResponseInResponseTo(sp.isSkipGeneratingResponseInResponseTo());
+        service.setSkipGeneratingSubjectConfirmationNotOnOrAfter(sp.isSkipGeneratingSubjectConfirmationNotOnOrAfter());
+        service.setSkipGeneratingSubjectConfirmationRecipient(sp.isSkipGeneratingSubjectConfirmationRecipient());
+        service.setSkipGeneratingSubjectConfirmationAddress(sp.isSkipGeneratingSubjectConfirmationAddress());
+        service.setSkipGeneratingSubjectConfirmationNotBefore(sp.isSkipGeneratingSubjectConfirmationNotBefore());
+        service.setSkipGeneratingSubjectConfirmationNameId(sp.isSkipGeneratingSubjectConfirmationNameId());
+        service.setSkipGeneratingNameIdQualifiers(sp.isSkipGeneratingNameIdQualifiers());
+        service.setSkipGeneratingTransientNameId(sp.isSkipGeneratingTransientNameId());
+        service.setSkipValidatingAuthnRequest(sp.isSkipValidatingAuthnRequest());
+        service.setSkipGeneratingServiceProviderNameIdQualifier(sp.isSkipGeneratingServiceProviderNameIdQualifier());
+        service.setSkipGeneratingAuthenticatingAuthority(sp.isSkipGeneratingAuthenticatingAuthority());
+        service.setSkipGeneratingNameIdQualifier(sp.isSkipGeneratingNameIdQualifier());
+        service.setSkipGeneratingSessionNotOnOrAfter(sp.isSkipGeneratingSessionNotOnOrAfter());
+        service.setValidateMetadataCertificates(sp.isValidateMetadataCertificates());
+        service.setRequiredAuthenticationContextClass(sp.getRequiredAuthenticationContextClass());
+        service.setRequiredNameIdFormat(sp.getRequiredNameIdFormat().getNameId());
+        service.setSkewAllowance(Optional.ofNullable(sp.getSkewAllowance()).orElse(0));
+        service.setNameIdQualifier(sp.getNameIdQualifier());
+        if (!sp.getAssertionAudiences().isEmpty()) {
+            service.setAssertionAudiences(String.join(",", sp.getAssertionAudiences()));
+        }
+        service.setServiceProviderNameIdQualifier(sp.getServiceProviderNameIdQualifier());
+
+        setPolicies(service, authPolicy, mfaPolicy, accessStrategy, attributeReleasePolicy,
+                tgtExpirationPolicy, stExpirationPolicy, tgtProxyExpirationPolicy, stProxyExpirationPolicy);
+
+        return service;
+    }
+}

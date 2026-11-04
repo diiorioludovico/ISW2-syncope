@@ -1,0 +1,393 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+//
+=== Type Management
+
+In order to manage which attributes can be owned by Users, Groups and any object, and which values can be provided,
+Apache Syncope defines a simple yet powerful type management system, vaguely inspired by the LDAP/X.500 information
+model.
+
+==== Schema
+
+A schema instance describes the values that attributes with that schema will hold; it can be defined plain or derived.
+
+It is possible to define i18n labels for each schema, with purpose of improving presentation with Admin and End-user UIs.
+
+===== Plain
+
+Values for attributes with such schema types are provided during realm, user, group or any object create / update.
+
+When defining a plain schema, the following information must be provided:
+
+* Type
+** `String`
+** `Long` - allows to specify a _conversion pattern_ to / from string, according to 
+https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/DecimalFormat.html[DecimalFormat^]
+** `Double` - allows to specify a _conversion pattern_ to / from string, according to 
+https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/DecimalFormat.html[DecimalFormat^]
+** `Boolean`
+** `Date` - allows to specify a _conversion pattern_ to / from string, according to 
+https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/DateFormat.html[DateFormat^]
+** `Enum` - allows to specify which predetermined value(s) can be selected
+** `Dropdown` - allows to specify an <<implementations,implementation>> which will dynamically return the value(s) that
+can be selected
+** `Encrypted`
+*** secret key (stored or referenced as https://docs.spring.io/spring-framework/reference/6.2/core/beans/environment.html#beans-using-propertysource[Spring property^])
+*** cipher algorithm
+*** whether transparent encryption is to be enabled, e.g. attribute values are stored as encrypted but available as
+cleartext on-demand (requires AES ciphering)
+** `Binary` - it is required to provide the declared mime type
+* Validator - (optional) <<implementations,implementation>> validating the value(s) provided for attributes, see 
+ifeval::["{snapshotOrRelease}" == "release"]
+https://github.com/apache/syncope/blob/syncope-{docVersion}/core/persistence-common/src/main/java/org/apache/syncope/core/persistence/common/attrvalue/EmailAddressValidator.java[EmailAddressValidator^]
+endif::[]
+ifeval::["{snapshotOrRelease}" == "snapshot"]
+https://github.com/apache/syncope/blob/4_1_X/core/persistence-common/src/main/java/org/apache/syncope/core/persistence/common/attrvalue/EmailAddressValidator.java[EmailAddressValidator^]
+endif::[]
+for reference
+* Mandatory condition - <<jexl,JEXL>> expression indicating whether values for  this schema must be necessarily provided
+or not; compared to simple boolean value, such condition allows to express complex statements like 'be mandatory only if
+this other attribute value is above 14', and so on
+* Unique constraint - make sure that no duplicate value(s) for this schema are found
+* Multivalue flag - whether single or multiple values are supported
+* Read-only flag - whether value(s) for this schema are modifiable only via internal code (say workflow tasks) or 
+can be instead provided during ordinary <<provisioning,provisioning>>
+
+===== Derived
+
+Sometimes it is useful to obtain values as arbitrary combinations of other attributes' values: for example, with 
+`firstname` and `surname` plain schemas, it is natural to think that `fullname` could be somehow defined as the 
+concatenation of `firstname` 's and `surname` 's values, separated by a blank space.
+
+Derived schemas are always read-only and require a <<jexl,JEXL>> expression to be specified that references plain schema
+types. +
+For the sample above, it would be
+
+ firstname + ' ' + surname
+
+With derived attributes, values are not stored into the <<persistence,internal storage>> but calculated on request, by
+evaluating the related JEXL expression
+
+==== AnyTypeClass
+
+Any type classes are aggregations of plain and derived schemas, provided with unique identifiers.
+
+Classes can be assigned to <<anytype, any types>>, <<realms, realms>> and are also available as auxiliary (hence to be
+specified on a given user / group / any object instance) and for <<type-extensions,type extensions>>.
+
+==== AnyType
+
+Any types represent the type of identities that Apache Syncope is able to manage; besides the predefined `USER` and 
+`GROUP`, more types can be created to model workstations, printers, folders, sensors, services, ...
+
+For all Any Types that are defined, a set of <<anytypeclass, classes>> can be selected so that instances of a given
+Any Type will be enabled to populate attributes for schemas in those classes.
+
+.Any types and attributes allowed for Users, Groups and Any Objects
+====
+Assuming that the following schemas are available:
+
+. plain: `firstname`, `surname`, `email`
+. derived: `fullname`
+
+and that the following Any Type classes are defined:
+
+. `minimal` - containing `firstname`, `surname` and `fullname`
+. `member` - containing `email` and `enrollment`
+
+and that the `USER` Any Type has only `minimal` assigned, then the following Users are valid (details are simplified to
+increase readability):
+
+[source,json]
+----
+{
+  "key": "74cd8ece-715a-44a4-a736-e17b46c4e7e6",
+  "type": "USER",
+  "realm": "/",
+  "username": "verdi",
+  "plainAttrs": [
+    {
+      "schema": "surname",
+      "values": [
+        "Verdi"
+      ]
+    },
+    {
+      "schema": "firstname",
+      "values": [
+        "Giuseppe"
+      ]
+    }
+  ],
+  "derAttrs": [
+    {
+      "schema": "fullname",
+      "values": [
+        "Giuseppe Verdi"
+      ]
+    }
+  ]
+}
+
+{
+  "key": "1417acbe-cbf6-4277-9372-e75e04f97000",
+  "type": "USER",
+  "realm": "/",
+  "username": "rossini",
+  "auxClasses": [ "member" ],
+  "plainAttrs": [
+    {
+      "schema": "surname",
+      "values": [
+        "Rossini"
+      ]
+    },
+    {
+      "schema": "firstname",
+      "values": [
+        "Gioacchino"
+      ]
+    },
+    {
+      "schema": "email",
+      "values": [
+        "gioacchino.rossini@syncope.apache.org"
+      ]
+    }
+  ],
+  "derAttrs": [
+    {
+      "schema": "fullname",
+      "values": [
+        "Gioacchino Rossini"
+      ]
+    }
+  ]
+}
+----
+====
+
+==== RelationshipType
+
+Relationships allow the creation of a link between a user, a group or an any object with another any object;
+relationship types define the available link types, including:
+
+* name
+* description
+* what any type shall be on the left side
+* what any type shall be on the right side
+* the related <<relationships,type extension>>
+
+.RelationshipType definitions
+====
+The following shows two definitions:
+
+. `inclusion`: between `PRINTER` and `PRINTER`, with no type extension
+. `neighborhood`: between `USER` and `PRINTER`, with type extension of the `other` any type class.
+
+[source,json]
+----
+[
+  {
+    "key": "inclusion",
+    "description": "Models the act that a printer is included by another printer",
+    "leftEndAnyType": "PRINTER",
+    "rightEndAnyType": "PRINTER",
+    "typeExtensions": []
+  },
+  {
+    "key": "neighborhood",
+    "description": "Models the act that an user is near a printer",
+    "leftEndAnyType": "USER",
+    "rightEndAnyType": "PRINTER",
+    "typeExtensions": [
+      {
+        "anyType": "USER",
+        "auxClasses": [
+          "other"
+        ]
+      }
+    ]
+  }
+]
+----
+====
+
+.Relationships for Any Object
+====
+The following any object of type `PRINTER` contains (details are simplified to increase readability):
+
+* a relationship of type `inclusion` with another `PRINTER` named `Canon MF 8030cn`, where this any object is on the
+left side of the relationship
+* a relationship of type `neighborhood` with the user `bellini`, where this any object is on the
+right side of the relationship
+
+[source,json]
+----
+{
+  "key": "fc6dbc3a-6c07-4965-8781-921e7401a4a5",
+  "type": "PRINTER",
+  "realm": "/",
+  "name": "HP LJ 1300n",
+  "auxClasses": [],
+  "plainAttrs": [
+    {
+      "schema": "model",
+      "values": [
+        "Canon MFC8030"
+      ]
+    },
+    {
+      "schema": "location",
+      "values": [
+        "1st floor"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "inclusion",
+      "end": "LEFT",
+      "otherEndType": "PRINTER",
+      "otherEndKey": "8559d14d-58c2-46eb-a2d4-a7d35161e8f8",
+      "otherEndName": "Canon MF 8030cn"
+    },
+    {
+      "type": "neighborhood",
+      "end": "RIGHT",
+      "otherEndType": "USER",
+      "otherEndKey": "c9b2dec2-00a7-4855-97c0-d854842b4b24",
+      "otherEndName": "bellini"
+    }
+  ]
+}
+----
+====
+
+.Relationship for User
+====
+The following user contains a relationship of type `neighborhood` with the `PRINTER` `HP LJ 1300n`, bearing attributes
+(details are simplified to increase readability):
+
+[source,json]
+----
+{
+  "key": "c9b2dec2-00a7-4855-97c0-d854842b4b24",
+  "type": "USER",
+  "realm": "/",
+  "username": "bellini",
+  "relationships": [
+    {
+      "type": "neighborhood",
+      "end": "LEFT",
+      "otherEndType": "PRINTER",
+      "otherEndKey": "fc6dbc3a-6c07-4965-8781-921e7401a4a5",
+      "otherEndName": "HP LJ 1300n",
+      "plainAttrs": [
+        {
+          "schema": "activationDate",
+          "values": [
+            "2025-12-18T12:30:00.000+0000"
+          ]
+        }
+      ],
+      "derAttrs": [
+        {
+          "schema": "noschema",
+          "values": [
+            ", "
+          ]
+        }
+      ]
+    }
+  ]
+}
+----
+====
+
+==== Type Extensions
+
+[discrete]
+===== Memberships
+
+When a user (or an any object) is part of a group, a _membership_ is defined.
+
+It is sometimes useful to define attributes which are bound to a particular membership: if, for example, the
+`University A` and `University B` Groups are available, a student might have different e-mail addresses for each
+university. How can this be modeled?
+
+Type extensions define a set of <<anytypeclass,classes>> associated to a group, that can be automatically
+assigned to a given user (or any object) when becoming a member of such group.
+
+.Membership with type extension
+====
+With reference to the sample above (details are simplified to increase readability):
+
+[source,json]
+----
+{
+  "key": "c9b2dec2-00a7-4855-97c0-d854842b4b24",
+  "type": "USER",
+  "realm": "/",
+  "username": "bellini",
+  "memberships": [
+    {
+      "type": "Membership",
+      "rightType": "GROUP",
+      "rightKey": "bf825fe1-7320-4a54-bd64-143b5c18ab97",
+      "groupName": "University A",
+      "plainAttrs": [
+        {
+          "schema": "email",
+          "values": [
+            "bellini@university_a.net"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Membership",
+      "rightType": "GROUP",
+      "rightKey": "bf825fe1-7320-4a54-bd64-143b5c18ab96",
+      "groupName": "University B",
+      "plainAttrs": [
+        {
+          "schema": "email",
+          "values": [
+            "bellini@university_b.net"
+          ]
+        }
+      ]
+    }
+  ]
+}
+----
+====
+
+[discrete]
+===== Relationships
+
+When a user (or a group or an any object) is linked to another any object according to a given
+<<relationshiptype,relationship type>>, a _relationship_ is defined.
+
+As already indicated above for memberships, it is sometimes useful to define attributes which are bound to a particular
+relationship.
+
+Type extensions define a set of <<anytypeclass,classes>> associated to a relationship type, that can be automatically
+assigned to a given user (or group or any object) when entering in a relationship of the given type with another
+any object.

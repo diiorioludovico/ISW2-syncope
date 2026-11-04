@@ -1,0 +1,283 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.common.lib.request;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.ws.rs.PathParam;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.syncope.common.lib.BaseBean;
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "_class")
+@JsonPropertyOrder(value = { "_class", "key" })
+@Schema(subTypes = { UserUR.class, GroupUR.class, AnyObjectUR.class }, discriminatorProperty = "_class")
+public abstract class AnyUR implements BaseBean {
+
+    private static final long serialVersionUID = -7445489774552440544L;
+
+    protected abstract static class Builder<R extends AnyUR, B extends Builder<R, B>> {
+
+        protected R instance;
+
+        Builder(final String key) {
+            getInstance().setKey(key);
+        }
+
+        protected abstract R newInstance();
+
+        protected final R getInstance() {
+            if (instance == null) {
+                instance = newInstance();
+            }
+            return instance;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B realm(final StringReplacePatchItem realm) {
+            getInstance().setRealm(realm);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B uManager(final StringReplacePatchItem uManager) {
+            getInstance().setuManager(uManager);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B gManager(final StringReplacePatchItem gManager) {
+            getInstance().setgManager(gManager);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B auxClass(final StringPatchItem auxClass) {
+            getInstance().getAuxClasses().add(auxClass);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B auxClasses(final StringPatchItem... auxClasses) {
+            getInstance().getAuxClasses().addAll(List.of(auxClasses));
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B auxClasses(final Collection<StringPatchItem> auxClasses) {
+            getInstance().getAuxClasses().addAll(auxClasses);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B plainAttr(final AttrPatch plainAttr) {
+            getInstance().getPlainAttrs().add(plainAttr);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B plainAttrs(final AttrPatch... plainAttrs) {
+            getInstance().getPlainAttrs().addAll(List.of(plainAttrs));
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B plainAttrs(final Collection<AttrPatch> plainAttrs) {
+            getInstance().getPlainAttrs().addAll(plainAttrs);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B resource(final StringPatchItem resource) {
+            getInstance().getResources().add(resource);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B resources(final StringPatchItem... resources) {
+            getInstance().getResources().addAll(List.of(resources));
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B resources(final Collection<StringPatchItem> resources) {
+            getInstance().getResources().addAll(resources);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B relationship(final RelationshipUR relationship) {
+            getInstance().getRelationships().add(relationship);
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B relationships(final RelationshipUR... relationships) {
+            getInstance().getRelationships().addAll(List.of(relationships));
+            return (B) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public B relationships(final Collection<RelationshipUR> relationships) {
+            getInstance().getRelationships().addAll(relationships);
+            return (B) this;
+        }
+
+        public R build() {
+            return getInstance();
+        }
+    }
+
+    @JsonProperty("_class")
+    private String discriminator;
+
+    private String key;
+
+    private StringReplacePatchItem realm;
+
+    private StringReplacePatchItem uManager;
+
+    private StringReplacePatchItem gManager;
+
+    private final Set<StringPatchItem> auxClasses = new HashSet<>();
+
+    private final Set<AttrPatch> plainAttrs = new HashSet<>();
+
+    private final Set<StringPatchItem> resources = new HashSet<>();
+
+    private final Set<RelationshipUR> relationships = new HashSet<>();
+
+    @Schema(name = "_class", requiredMode = Schema.RequiredMode.REQUIRED)
+    public abstract String getDiscriminator();
+
+    public void setDiscriminator(final String discriminator) {
+        // do nothing
+    }
+
+    @JsonProperty(required = true)
+    public String getKey() {
+        return key;
+    }
+
+    @PathParam("key")
+    public void setKey(final String key) {
+        this.key = key;
+    }
+
+    public StringReplacePatchItem getRealm() {
+        return realm;
+    }
+
+    public void setRealm(final StringReplacePatchItem realm) {
+        this.realm = realm;
+    }
+
+    public StringReplacePatchItem getuManager() {
+        return uManager;
+    }
+
+    public void setuManager(final StringReplacePatchItem uManager) {
+        this.uManager = uManager;
+    }
+
+    public StringReplacePatchItem getgManager() {
+        return gManager;
+    }
+
+    public void setgManager(final StringReplacePatchItem gManager) {
+        this.gManager = gManager;
+    }
+
+    public Set<StringPatchItem> getAuxClasses() {
+        return auxClasses;
+    }
+
+    public Set<AttrPatch> getPlainAttrs() {
+        return plainAttrs;
+    }
+
+    public Set<StringPatchItem> getResources() {
+        return resources;
+    }
+
+    public Set<RelationshipUR> getRelationships() {
+        return relationships;
+    }
+
+    /**
+     * @return true if no actual changes are defined
+     */
+    @JsonIgnore
+    public boolean isEmpty() {
+        return realm == null
+                && uManager == null
+                && gManager == null
+                && auxClasses.isEmpty()
+                && plainAttrs.isEmpty()
+                && resources.isEmpty()
+                && relationships.isEmpty();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().
+                append(discriminator).
+                append(key).
+                append(realm).
+                append(uManager).
+                append(gManager).
+                append(auxClasses).
+                append(plainAttrs).
+                append(resources).
+                append(relationships).
+                build();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final AnyUR other = (AnyUR) obj;
+        return new EqualsBuilder().
+                append(discriminator, other.discriminator).
+                append(key, other.key).
+                append(realm, other.realm).
+                append(uManager, other.uManager).
+                append(gManager, other.gManager).
+                append(auxClasses, other.auxClasses).
+                append(plainAttrs, other.plainAttrs).
+                append(resources, other.resources).
+                append(relationships, other.relationships).
+                build();
+    }
+}

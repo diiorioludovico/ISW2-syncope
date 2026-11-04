@@ -1,0 +1,137 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+//
+=== Upgrade from 4.0
+
+Planning the upgrade of an existing Apache Syncope 4.0 deployment to Syncope 4.1 can be achieved by following the
+indications below.
+
+==== Preparation
+
+First of all, update the existing Syncope 4.0 deployment's code / Docker images to the latest
+https://cwiki.apache.org/confluence/display/SYNCOPE/Capriccio[4.1 release^] available.
+
+Also, ensure to have a full backup of the existing database used as <<persistence,internal storage>>.
+
+==== Persistence Storage upgrade
+
+[CAUTION]
+Ensure to <<internal-storage,check the compatibility>> of the existing DBMS and upgrade, if needed.
+
+Download https://syncope.apache.org/downloads[`syncope-core-persistence-jpa-upgrader-{docVersion}.jar`^]:
+this tool will generate the full set of SQL statements required to upgrade the internal storage to Syncope 4.1.
+
+Run the tool depending on your actual DBMS by using the latest JDK 21 available; the generated SQL statements will be
+sent to a new `upgrade.sql` file.
+
+[discrete]
+===== PostgreSQL
+
+[source,bash,subs="verbatim,attributes"]
+$ java \
+ -Dloader.path=/path/to/postgresql.jar
+ -Ddb.jdbcURL="jdbc:postgresql://localhost:5432/syncope?stringtype=unspecified" \
+ -Ddb.username=syncope -Ddb.password=syncope \
+ -jar syncope-core-persistence-jpa-upgrader-{docVersion}.jar \
+ upgrade.sql
+
+assuming that:
+
+ * `/path/to/postgresql.jar` is the full path to the latest JDBC driver available for PostgreSQL
+ * you have a PostgreSQL instance running on `localhost`, listening on its default port `5432` with a database
+`syncope` fully accessible by user `syncope` with password `syncope`
+
+[discrete]
+===== MySQL
+
+[source,bash,subs="verbatim,attributes"]
+$ java \
+ -Dloader.path=/path/to/mysql.jar
+ -Dspring.profiles.active=mysql
+ -Ddb.jdbcURL="jdbc:mysql://localhost:3306/syncope?useSSL=false&allowPublicKeyRetrieval=true" \
+ -Ddb.username=syncope -Ddb.password=syncope \
+ -jar syncope-core-persistence-jpa-upgrader-{docVersion}.jar \
+ upgrade.sql
+
+assuming that:
+
+ * `/path/to/mysql.jar` is the full path to the latest JDBC driver available for MySQL
+ * you have a MySQL instance running on `localhost`, listening on its default port `3306` with a database
+`syncope` fully accessible by user `syncope` with password `syncope`
+
+[discrete]
+===== MariaDB
+
+[source,bash,subs="verbatim,attributes"]
+$ java \
+ -Dloader.path=/path/to/mariadb.jar
+ -Dspring.profiles.active=mariadb
+ -Ddb.jdbcURL="jdbc:mariadb://localhost:3306/syncope?characterEncoding=UTF-8" \
+ -Ddb.username=syncope -Ddb.password=syncope \
+ -jar syncope-core-persistence-jpa-upgrader-{docVersion}.jar \
+ upgrade.sql
+
+assuming that:
+
+ * `/path/to/mariadb.jar` is the full path to the latest JDBC driver available for MariaDB
+ * you have a MariaDB instance running on `localhost`, listening on its default port `3306` with a database
+`syncope` fully accessible by user `syncope` with password `syncope`
+
+[discrete]
+===== Oracle Database
+
+[source,bash,subs="verbatim,attributes"]
+$ java \
+ -Dloader.path=/path/to/ojdbc11.jar
+ -Dspring.profiles.active=oracle
+ -Ddb.jdbcURL="jdbc:oracle:thin:@localhost}:1521/FREEPDB1" \
+ -Ddb.username=syncope -Ddb.password=syncope \
+ -jar syncope-core-persistence-jpa-upgrader-{docVersion}.jar \
+ upgrade.sql
+
+assuming that:
+
+ * `/path/to/ojdbc11.jar` is the full path to the latest JDBC driver available for Oracle Database
+ * you have an Oracle instance running on `localhost`, listening on its default port `1521` with a database
+`syncope` fully accessible by user `syncope` with password `syncope`
+
+[WARNING]
+====
+It is required to change the type of the `AUTHORITIES` column of the `ACCESSTOKEN` table.
+
+The simplest way to perform such operation is to run the following SQL statements:
+
+....
+DELETE FROM ACCESSTOKEN;
+ALTER TABLE ACCESSTOKEN MODIFY AUTHORITIES CLOB;
+....
+
+This will forcibly log out from all authenticated users.
+====
+
+==== Finalization
+
+. shutdown the standalone process or the Jakarta EE container running Apache Syncope 4.0 Core, to ensure no changes
+are pushed to the internal storage
+
+. execute the SQL statements as generated above against the internal storage: in case of errors, apply manual
+corrections until everything runs clear; consider to restore from the backup taken above if needed, before executing
+the updated SQL statements again
+
+. start the standalone process or the Jakarta EE container of Apache Syncope 4.1 Core, and watch the log files
+to check for any error

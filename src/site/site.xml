@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+-->
+<site xmlns="http://maven.apache.org/SITE/2.0.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://maven.apache.org/SITE/2.0.0 https://maven.apache.org/xsd/site-2.0.0.xsd"
+      name="Apache Syncope">
+
+  <publishDate position="none"/>
+  <version position="none"/>
+ 
+  <skin>
+    <groupId>org.apache.maven.skins</groupId>
+    <artifactId>maven-fluido-skin</artifactId>
+    <version>2.1.0</version>
+  </skin>
+  <custom>
+    <fluidoSkin>
+      <topBarEnabled>false</topBarEnabled>
+      <sideBarEnabled>true</sideBarEnabled>
+      <leftColumnClass>span2</leftColumnClass>
+      <bodyColumnClass>span10</bodyColumnClass>
+      <sourceLineNumbersEnabled>false</sourceLineNumbersEnabled>
+      <skipGenerationDate>true</skipGenerationDate>
+    </fluidoSkin>
+  </custom>
+  
+  <body>
+    <breadcrumbs>
+      <item name="Apache" href="https://www.apache.org/"/>
+      <item name="Apache Syncope" href="https://syncope.apache.org/"/>
+    </breadcrumbs>
+        
+    <menu name="Apache Syncope™" inherit="top">
+      <item name="IAM Scenario" href="iam-scenario"/>
+      <item name="Architecture" href="architecture"/>
+      <item name="Demo" href="demo"/>
+      <item name="Downloads" href="downloads"/>
+      <item name="Security" href="https://syncope.apache.org/security"/>
+      <item name="Documentation" href="docs/"/>
+      <item name="Mailing Lists" href="mailing-lists"/>
+      <item name="Team" href="team"/>
+      <item name="License" href="https://www.apache.org/licenses/"/>
+      <item name="Professional Services" href="professional-services"/>
+    </menu>
+        
+    <menu name="Development">
+      <item name="How to contribute?" href="contributing"/>
+      <item name="Source Repository" href="source-repository"/>
+      <item name="Continuous Integration" href="integration"/>
+      <item name="Issue Management" href="issue-management"/>
+      <item name="Building" href="building"/>
+      <item name="Release Process" href="release-process"/>
+    </menu>
+
+    <menu name="ASF">
+      <item name="How Apache Works" href="https://www.apache.org/foundation/how-it-works"/>
+      <item name="Foundation" href="https://www.apache.org/foundation/"/>
+      <item name="Sponsoring Apache" href="https://www.apache.org/foundation/sponsorship"/>
+      <item name="Privacy Policy" href="https://privacy.apache.org/policies/privacy-policy-public.html"/>
+      <item name="Thanks" href="https://www.apache.org/foundation/thanks"/>
+    </menu>
+
+    <footer>
+      <![CDATA[
+Copyright &copy; 2026, the Apache Software Foundation.<br/>
+Apache, Syncope, Apache Syncope, the Apache feather logo and the Apache Syncope project logo are trademarks of The Apache Software Foundation. All other marks mentioned may be trademarks or registered trademarks of their respective owners.
+      ]]>
+    </footer>
+  </body>
+
+</site>

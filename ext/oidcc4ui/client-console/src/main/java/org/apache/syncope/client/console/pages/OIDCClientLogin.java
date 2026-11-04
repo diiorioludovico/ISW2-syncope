@@ -1,0 +1,75 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.client.console.pages;
+
+import java.time.Instant;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.syncope.client.console.SyncopeConsoleSession;
+import org.apache.syncope.client.ui.commons.Constants;
+import org.apache.syncope.client.ui.commons.panels.OIDCC4UIConstants;
+import org.apache.wicket.authroles.authentication.AuthenticatedWebSession;
+import org.apache.wicket.markup.html.WebPage;
+import org.apache.wicket.request.mapper.parameter.PageParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wicketstuff.kendo.ui.widget.notification.Notification;
+
+public class OIDCClientLogin extends WebPage {
+
+    private static final long serialVersionUID = 8581614051773949262L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(OIDCClientLogin.class);
+
+    private static final String OIDC_ACCESS_ERROR = "OIDC access error";
+
+    public OIDCClientLogin(final PageParameters parameters) {
+        super(parameters);
+
+        if (AuthenticatedWebSession.get().isSignedIn()) {
+            AuthenticatedWebSession.get().invalidate();
+        }
+
+        String jwt = parameters.get(OIDCC4UIConstants.OIDCC4UI_JWT).toOptionalString();
+        Instant jwtExpiration = parameters.get(OIDCC4UIConstants.OIDCC4UI_JWT_EXPIRATION).toOptional(Instant.class);
+        if (StringUtils.isBlank(jwt)) {
+            LOG.error("No JWT found, redirecting to default greeter");
+
+            PageParameters loginParameters = new PageParameters();
+            loginParameters.add(Constants.NOTIFICATION_MSG_PARAM, OIDC_ACCESS_ERROR);
+            loginParameters.add(Constants.NOTIFICATION_LEVEL_PARAM, Notification.ERROR);
+            setResponsePage(Login.class, loginParameters);
+        }
+
+        if (SyncopeConsoleSession.get().authenticate(jwt, jwtExpiration)) {
+            if (parameters.get(OIDCC4UIConstants.OIDCC4UI_SLO_SUPPORTED).toBoolean(false)) {
+                SyncopeConsoleSession.get().setAttribute(Constants.BEFORE_LOGOUT_PAGE, OIDCClientBeforeLogout.class);
+            }
+
+            // If login has been called because the user was not yet logged in, than continue to the
+            // original destination, otherwise to the Home page
+            continueToOriginalDestination();
+            setResponsePage(getApplication().getHomePage());
+        } else {
+            PageParameters loginParameters = new PageParameters();
+            loginParameters.add(Constants.NOTIFICATION_MSG_PARAM, OIDC_ACCESS_ERROR);
+            loginParameters.add(Constants.NOTIFICATION_LEVEL_PARAM, Notification.ERROR);
+            setResponsePage(Login.class, loginParameters);
+        }
+    }
+}

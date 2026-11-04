@@ -1,0 +1,764 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.client.console.clientapps;
+
+import jakarta.ws.rs.core.MediaType;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.syncope.client.console.SyncopeConsoleSession;
+import org.apache.syncope.client.console.SyncopeWebApplication;
+import org.apache.syncope.client.console.commons.RealmsUtils;
+import org.apache.syncope.client.console.panels.AbstractModalPanel;
+import org.apache.syncope.client.console.rest.ClientAppRestClient;
+import org.apache.syncope.client.console.rest.OIDCOpEntityRestClient;
+import org.apache.syncope.client.console.rest.PolicyRestClient;
+import org.apache.syncope.client.console.rest.RealmRestClient;
+import org.apache.syncope.client.console.wicket.markup.html.bootstrap.dialog.BaseModal;
+import org.apache.syncope.client.console.wicket.markup.html.form.AjaxSearchFieldPanel;
+import org.apache.syncope.client.console.wicket.markup.html.form.PolicyRenderer;
+import org.apache.syncope.client.ui.commons.Constants;
+import org.apache.syncope.client.ui.commons.ajax.form.IndicatorAjaxFormComponentUpdatingBehavior;
+import org.apache.syncope.client.ui.commons.markup.html.form.AjaxDropDownChoicePanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.AjaxNumberFieldPanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.AjaxPalettePanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.AjaxTextFieldPanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.AjaxTripleStateButtonPanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.BinaryFieldPanel;
+import org.apache.syncope.client.ui.commons.markup.html.form.MultiFieldPanel;
+import org.apache.syncope.client.ui.commons.pages.BaseWebPage;
+import org.apache.syncope.client.ui.commons.panels.WizardModalPanel;
+import org.apache.syncope.client.ui.commons.wizards.AbstractModalPanelBuilder;
+import org.apache.syncope.client.ui.commons.wizards.AjaxWizard;
+import org.apache.syncope.common.lib.OIDCStandardScope;
+import org.apache.syncope.common.lib.policy.PolicyTO;
+import org.apache.syncope.common.lib.to.ClientAppTO;
+import org.apache.syncope.common.lib.to.OIDCRPClientAppTO;
+import org.apache.syncope.common.lib.to.RealmTO;
+import org.apache.syncope.common.lib.to.SAML2SPClientAppTO;
+import org.apache.syncope.common.lib.types.ClientAppType;
+import org.apache.syncope.common.lib.types.LogoutType;
+import org.apache.syncope.common.lib.types.MetadataCriteriaDirection;
+import org.apache.syncope.common.lib.types.OIDCApplicationType;
+import org.apache.syncope.common.lib.types.OIDCClientAuthenticationMethod;
+import org.apache.syncope.common.lib.types.OIDCGrantType;
+import org.apache.syncope.common.lib.types.OIDCResponseType;
+import org.apache.syncope.common.lib.types.OIDCSubjectType;
+import org.apache.syncope.common.lib.types.OIDCTokenEncryptionAlg;
+import org.apache.syncope.common.lib.types.OIDCTokenEncryptionEncoding;
+import org.apache.syncope.common.lib.types.OIDCTokenSigningAlg;
+import org.apache.syncope.common.lib.types.PolicyType;
+import org.apache.syncope.common.lib.types.SAML2BindingType;
+import org.apache.syncope.common.lib.types.SAML2SPNameId;
+import org.apache.syncope.common.lib.types.SigningCredentialType;
+import org.apache.syncope.common.lib.types.XmlSecAlgorithm;
+import org.apache.syncope.common.rest.api.service.SAML2IdPEntityService;
+import org.apache.wicket.Component;
+import org.apache.wicket.PageReference;
+import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.extensions.ajax.markup.html.autocomplete.AutoCompleteSettings;
+import org.apache.wicket.markup.html.form.AbstractSingleSelectChoice;
+import org.apache.wicket.markup.html.list.ListItem;
+import org.apache.wicket.markup.html.list.ListView;
+import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.LoadableDetachableModel;
+import org.apache.wicket.model.Model;
+import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.model.util.ListModel;
+import org.apache.wicket.validation.validator.UrlValidator;
+
+public class ClientAppModalPanelBuilder<T extends ClientAppTO> extends AbstractModalPanelBuilder<T> {
+
+    private static final long serialVersionUID = 5945391813567245081L;
+
+    protected final IModel<Map<String, String>> accessPolicies = new LoadableDetachableModel<>() {
+
+        private static final long serialVersionUID = -2012833443695917883L;
+
+        @Override
+        protected Map<String, String> load() {
+            return policyRestClient.list(PolicyType.ACCESS).stream().
+                    collect(Collectors.toMap(PolicyTO::getKey, PolicyTO::getName, (v1, v2) -> v1, LinkedHashMap::new));
+        }
+    };
+
+    protected final IModel<Map<String, String>> attrReleasePolicies = new LoadableDetachableModel<>() {
+
+        private static final long serialVersionUID = -2012833443695917883L;
+
+        @Override
+        protected Map<String, String> load() {
+            return policyRestClient.list(PolicyType.ATTR_RELEASE).stream().
+                    collect(Collectors.toMap(PolicyTO::getKey, PolicyTO::getName, (v1, v2) -> v1, LinkedHashMap::new));
+        }
+    };
+
+    protected final IModel<Map<String, String>> authPolicies = new LoadableDetachableModel<>() {
+
+        private static final long serialVersionUID = -2012833443695917883L;
+
+        @Override
+        protected Map<String, String> load() {
+            return policyRestClient.list(PolicyType.AUTH).stream().
+                    collect(Collectors.toMap(PolicyTO::getKey, PolicyTO::getName, (v1, v2) -> v1, LinkedHashMap::new));
+        }
+    };
+
+    protected final IModel<Map<String, String>> ticketExpirationPolicies = new LoadableDetachableModel<>() {
+
+        private static final long serialVersionUID = -2012833443695917883L;
+
+        @Override
+        protected Map<String, String> load() {
+            return policyRestClient.list(PolicyType.TICKET_EXPIRATION).stream().
+                    collect(Collectors.toMap(PolicyTO::getKey, PolicyTO::getName, (v1, v2) -> v1, LinkedHashMap::new));
+        }
+    };
+
+    protected final BaseModal<T> modal;
+
+    protected final ClientAppType type;
+
+    protected final PolicyRestClient policyRestClient;
+
+    protected final ClientAppRestClient clientAppRestClient;
+
+    protected final RealmRestClient realmRestClient;
+
+    protected final OIDCOpEntityRestClient oidcOpEntityRestClient;
+
+    public ClientAppModalPanelBuilder(
+            final ClientAppType type,
+            final T defaultItem,
+            final BaseModal<T> modal,
+            final PolicyRestClient policyRestClient,
+            final ClientAppRestClient clientAppRestClient,
+            final RealmRestClient realmRestClient,
+            final OIDCOpEntityRestClient oidcOpEntityRestClient,
+            final PageReference pageRef) {
+
+        super(defaultItem, pageRef);
+        this.type = type;
+        this.modal = modal;
+        this.policyRestClient = policyRestClient;
+        this.clientAppRestClient = clientAppRestClient;
+        this.realmRestClient = realmRestClient;
+        this.oidcOpEntityRestClient = oidcOpEntityRestClient;
+    }
+
+    @Override
+    public WizardModalPanel<T> build(final String id, final int index, final AjaxWizard.Mode mode) {
+        return new Profile(newModelObject(), modal, pageRef);
+    }
+
+    private class Profile extends AbstractModalPanel<T> {
+
+        private static final long serialVersionUID = 7647959917047450318L;
+
+        private final T clientAppTO;
+
+        Profile(final T clientAppTO, final BaseModal<T> modal, final PageReference pageRef) {
+            super(modal, pageRef);
+            modal.setFormModel(clientAppTO);
+
+            this.clientAppTO = clientAppTO;
+
+            List<Component> fields = new ArrayList<>();
+
+            boolean fullRealmsTree = SyncopeWebApplication.get().fullRealmsTree(realmRestClient);
+            AutoCompleteSettings settings = new AutoCompleteSettings();
+            settings.setShowCompleteListOnFocusGain(fullRealmsTree);
+            settings.setShowListOnEmptyInput(fullRealmsTree);
+            AjaxSearchFieldPanel realm = new AjaxSearchFieldPanel(
+                    "field", "realm", new PropertyModel<>(clientAppTO, "realm"), settings) {
+
+                private static final long serialVersionUID = -6390474600233486704L;
+
+                @Override
+                protected Iterator<String> getChoices(final String input) {
+                    return realmRestClient.search(fullRealmsTree
+                            ? RealmsUtils.buildBaseQuery()
+                            : RealmsUtils.buildNameQuery(input)).getResult().stream().
+                            map(RealmTO::getFullPath).iterator();
+                }
+            };
+            fields.add(realm.setOutputMarkupId(true));
+
+            AjaxTextFieldPanel name = new AjaxTextFieldPanel(
+                    "field", Constants.NAME_FIELD_NAME,
+                    new PropertyModel<>(clientAppTO, Constants.NAME_FIELD_NAME), false);
+            fields.add(name.setRequired(true));
+
+            if (clientAppTO.getClientAppId() == null) {
+                Stream.of(ClientAppType.values()).map(clientAppRestClient::list).flatMap(List::stream).
+                        max(Comparator.comparing(ClientAppTO::getClientAppId)).
+                        ifPresent(app -> clientAppTO.setClientAppId(app.getClientAppId() + 1));
+            }
+            fields.add(new AjaxNumberFieldPanel.Builder<Long>().build(
+                    "field", "clientAppId", Long.class,
+                    new PropertyModel<>(clientAppTO, "clientAppId")).setRequired(true));
+
+            fields.add(new AjaxNumberFieldPanel.Builder<Integer>().build(
+                    "field", "evaluationOrder", Integer.class,
+                    new PropertyModel<>(clientAppTO, "evaluationOrder")).setRequired(true));
+
+            fields.add(new AjaxTextFieldPanel(
+                    "field", Constants.DESCRIPTION_FIELD_NAME,
+                    new PropertyModel<>(clientAppTO, Constants.DESCRIPTION_FIELD_NAME), false));
+
+            fields.add(new AjaxTextFieldPanel(
+                    "field", "logo",
+                    new PropertyModel<>(clientAppTO, "logo"), false));
+
+            fields.add(new AjaxTextFieldPanel(
+                    "field", "theme",
+                    new PropertyModel<>(clientAppTO, "theme"), false));
+
+            AjaxTextFieldPanel informationUrl = new AjaxTextFieldPanel(
+                    "field", "informationUrl",
+                    new PropertyModel<>(clientAppTO, "informationUrl"), false);
+            informationUrl.addValidator(new UrlValidator());
+            fields.add(informationUrl);
+
+            AjaxTextFieldPanel privacyUrl = new AjaxTextFieldPanel(
+                    "field", "privacyUrl",
+                    new PropertyModel<>(clientAppTO, "privacyUrl"), false);
+            privacyUrl.addValidator(new UrlValidator());
+            fields.add(privacyUrl);
+
+            AjaxDropDownChoicePanel<String> accessPolicy = new AjaxDropDownChoicePanel<>(
+                    "field", "accessPolicy", new PropertyModel<>(clientAppTO, "accessPolicy"), false);
+            accessPolicy.setChoiceRenderer(new PolicyRenderer(accessPolicies.getObject()));
+            accessPolicy.setChoices(new ArrayList<>(accessPolicies.getObject().keySet()));
+            ((AbstractSingleSelectChoice<?>) accessPolicy.getField()).setNullValid(true);
+            fields.add(accessPolicy);
+
+            AjaxDropDownChoicePanel<String> attrReleasePolicy = new AjaxDropDownChoicePanel<>(
+                    "field", "attrReleasePolicy", new PropertyModel<>(clientAppTO, "attrReleasePolicy"), false);
+            attrReleasePolicy.setChoiceRenderer(new PolicyRenderer(attrReleasePolicies.getObject()));
+            attrReleasePolicy.setChoices(new ArrayList<>(attrReleasePolicies.getObject().keySet()));
+            ((AbstractSingleSelectChoice<?>) attrReleasePolicy.getField()).setNullValid(true);
+            fields.add(attrReleasePolicy);
+
+            AjaxDropDownChoicePanel<String> authPolicy = new AjaxDropDownChoicePanel<>(
+                    "field", "authPolicy", new PropertyModel<>(clientAppTO, "authPolicy"), false);
+            authPolicy.setChoiceRenderer(new PolicyRenderer(authPolicies.getObject()));
+            authPolicy.setChoices(new ArrayList<>(authPolicies.getObject().keySet()));
+            fields.add(authPolicy);
+
+            AjaxDropDownChoicePanel<String> ticketExpirationPolicy = new AjaxDropDownChoicePanel<>(
+                    "field", "ticketExpirationPolicy",
+                    new PropertyModel<>(clientAppTO, "ticketExpirationPolicy"), false);
+            ticketExpirationPolicy.setChoiceRenderer(new PolicyRenderer(ticketExpirationPolicies.getObject()));
+            ticketExpirationPolicy.setChoices(new ArrayList<>(ticketExpirationPolicies.getObject().keySet()));
+            ((AbstractSingleSelectChoice<?>) ticketExpirationPolicy.getField()).setNullValid(true);
+            fields.add(ticketExpirationPolicy);
+
+            AjaxDropDownChoicePanel<LogoutType> logoutType = new AjaxDropDownChoicePanel<>(
+                    "field", "logoutType", new PropertyModel<>(clientAppTO, "logoutType"), false);
+            logoutType.setChoices(List.of(LogoutType.values()));
+            fields.add(logoutType.setRequired(true));
+
+            switch (type) {
+                case CASSP:
+                    fields.add(new AjaxTextFieldPanel(
+                            "field", "serviceId", new PropertyModel<>(clientAppTO, "serviceId"), false).
+                            setRequired(true));
+                    break;
+
+                case OIDCRP:
+                    AjaxTextFieldPanel clientId = new AjaxTextFieldPanel(
+                            "field", "clientId", new PropertyModel<>(clientAppTO, "clientId"), false);
+                    fields.add(clientId.setRequired(true));
+                    name.getField().add(new IndicatorAjaxFormComponentUpdatingBehavior(Constants.ON_CHANGE) {
+
+                        private static final long serialVersionUID = -6139318907146065915L;
+
+                        @Override
+                        protected void onUpdate(final AjaxRequestTarget target) {
+                            if (StringUtils.isBlank(clientId.getModelObject())) {
+                                clientId.setModelObject(name.getModelObject());
+                                target.add(clientId);
+                            }
+                        }
+                    });
+
+                    AjaxTextFieldPanel clientSecret = new AjaxTextFieldPanel(
+                            "field", "clientSecret", new PropertyModel<>(clientAppTO, "clientSecret"), false);
+                    clientSecret.setChoices(List.of(RandomStringUtils.secure().nextNumeric(15)));
+                    fields.add(clientSecret);
+
+                    AjaxTextFieldPanel idTokenIssuer = new AjaxTextFieldPanel(
+                            "field", "idTokenIssuer", new PropertyModel<>(clientAppTO, "idTokenIssuer"), false);
+                    fields.add(idTokenIssuer);
+
+                    AjaxTripleStateButtonPanel signIdToken = new AjaxTripleStateButtonPanel(
+                            "field", "signIdToken", new PropertyModel<>(clientAppTO, "signIdToken"));
+                    signIdToken.addRequiredLabel();
+                    fields.add(signIdToken);
+                    AjaxDropDownChoicePanel<OIDCTokenSigningAlg> idTokenSigningAlg = new AjaxDropDownChoicePanel<>(
+                            "field", "idTokenSigningAlg", new PropertyModel<>(clientAppTO, "idTokenSigningAlg"), false);
+                    idTokenSigningAlg.setChoices(List.of(OIDCTokenSigningAlg.values()));
+                    fields.add(idTokenSigningAlg.addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "encryptIdToken", new PropertyModel<>(clientAppTO, "encryptIdToken")).
+                                addRequiredLabel());
+                    AjaxDropDownChoicePanel<OIDCTokenEncryptionAlg> idTokenEncryptionAlg =
+                            new AjaxDropDownChoicePanel<>(
+                                    "field",
+                                    "idTokenEncryptionAlg",
+                                    new PropertyModel<>(clientAppTO, "idTokenEncryptionAlg"),
+                                    false);
+                    idTokenEncryptionAlg.setChoices(List.of(OIDCTokenEncryptionAlg.values()));
+                    fields.add(idTokenEncryptionAlg.addRequiredLabel());
+                    AjaxDropDownChoicePanel<OIDCTokenEncryptionEncoding> idTokenEncryptionEncoding =
+                            new AjaxDropDownChoicePanel<>(
+                                    "field",
+                                    "idTokenEncryptionEncoding",
+                                    new PropertyModel<>(clientAppTO, "idTokenEncryptionEncoding"),
+                                    false);
+                    idTokenEncryptionEncoding.setChoices(List.of(OIDCTokenEncryptionEncoding.values()));
+                    fields.add(idTokenEncryptionEncoding);
+
+                    AjaxDropDownChoicePanel<OIDCTokenSigningAlg> userInfoSigningAlg = new AjaxDropDownChoicePanel<>(
+                            "field",
+                            "userInfoSigningAlg",
+                            new PropertyModel<>(clientAppTO, "userInfoSigningAlg"),
+                            false);
+                    userInfoSigningAlg.setChoices(List.of(OIDCTokenSigningAlg.values()));
+                    fields.add(userInfoSigningAlg);
+                    AjaxDropDownChoicePanel<OIDCTokenEncryptionAlg> userInfoEncryptedResponseAlg =
+                            new AjaxDropDownChoicePanel<>(
+                                    "field",
+                                    "userInfoEncryptedResponseAlg",
+                                    new PropertyModel<>(clientAppTO, "userInfoEncryptedResponseAlg"),
+                                    false);
+                    userInfoEncryptedResponseAlg.setChoices(List.of(OIDCTokenEncryptionAlg.values()));
+                    fields.add(userInfoEncryptedResponseAlg);
+                    AjaxDropDownChoicePanel<OIDCTokenEncryptionEncoding> userInfoEncryptedResponseEncoding =
+                            new AjaxDropDownChoicePanel<>(
+                                    "field",
+                                    "userInfoEncryptedResponseEncoding",
+                                    new PropertyModel<>(clientAppTO, "userInfoEncryptedResponseEncoding"),
+                                    false);
+                    userInfoEncryptedResponseEncoding.setChoices(List.of(OIDCTokenEncryptionEncoding.values()));
+                    fields.add(userInfoEncryptedResponseEncoding);
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "jwtAccessToken", new PropertyModel<>(clientAppTO, "jwtAccessToken")).
+                                addRequiredLabel());
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "bypassApprovalPrompt", new PropertyModel<>(clientAppTO, "bypassApprovalPrompt")).
+                                addRequiredLabel());
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "generateRefreshToken", new PropertyModel<>(clientAppTO, "generateRefreshToken")).
+                                addRequiredLabel());
+
+                    AjaxDropDownChoicePanel<OIDCSubjectType> subjectType = new AjaxDropDownChoicePanel<>(
+                            "field", "subjectType", new PropertyModel<>(clientAppTO, "subjectType"), false);
+                    subjectType.setChoices(List.of(OIDCSubjectType.values()));
+                    fields.add(subjectType.addRequiredLabel().setEnabled(true));
+
+                    AjaxDropDownChoicePanel<OIDCApplicationType> applicationType = new AjaxDropDownChoicePanel<>(
+                            "field", "applicationType", new PropertyModel<>(clientAppTO, "applicationType"), false);
+                    applicationType.setChoices(List.of(OIDCApplicationType.values()));
+                    fields.add(applicationType.addRequiredLabel().setEnabled(true));
+
+                    AjaxTextFieldPanel redirectUri = new AjaxTextFieldPanel("panel", "redirectUris", Model.of());
+                    fields.add(new MultiFieldPanel.Builder<String>(
+                            new PropertyModel<>(clientAppTO, "redirectUris")).build(
+                            "field",
+                            "redirectUris",
+                            redirectUri));
+
+                    fields.add(new AjaxPalettePanel.Builder<OIDCGrantType>().setName("supportedGrantTypes").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "supportedGrantTypes"),
+                            new ListModel<>(List.of(OIDCGrantType.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<OIDCResponseType>().setName("supportedResponseTypes").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "supportedResponseTypes"),
+                            new ListModel<>(List.of(OIDCResponseType.values()))));
+
+                    AjaxTextFieldPanel scopes = new AjaxTextFieldPanel("panel", "scopes", Model.of());
+                    scopes.setChoices(Stream.concat(Stream.of(OIDCStandardScope.values()).map(OIDCStandardScope::name),
+                            Optional.ofNullable(oidcOpEntityRestClient.get().get()).
+                                    map(oidcOpEntity -> oidcOpEntity.getCustomScopes().keySet().stream()).
+                                    orElseGet(() -> Stream.empty())).
+                            distinct().sorted().toList());
+                    fields.add(new MultiFieldPanel.Builder<String>(
+                            new PropertyModel<>(clientAppTO, "scopes")).build(
+                            "field",
+                            "scopes",
+                            scopes));
+
+                    AjaxTextFieldPanel logoutUri = new AjaxTextFieldPanel(
+                            "field", "logoutUri", new PropertyModel<>(clientAppTO, "logoutUri"), false);
+                    logoutUri.addValidator(new UrlValidator());
+                    fields.add(logoutUri);
+
+                    BinaryFieldPanel jwks = new BinaryFieldPanel(
+                            "field",
+                            "jwks",
+                            new Model<>() {
+
+                        private static final long serialVersionUID = 7666049400663637482L;
+
+                        @Override
+                        public String getObject() {
+                            OIDCRPClientAppTO oidcRPCA = (OIDCRPClientAppTO) clientAppTO;
+                            return StringUtils.isBlank(oidcRPCA.getJwks())
+                                    ? null
+                                    : Base64.getEncoder().encodeToString(
+                                            oidcRPCA.getJwks().getBytes(StandardCharsets.UTF_8));
+                        }
+
+                        @Override
+                        public void setObject(final String object) {
+                            OIDCRPClientAppTO oidcRPCA = (OIDCRPClientAppTO) clientAppTO;
+                            if (StringUtils.isBlank(object)) {
+                                oidcRPCA.setJwks(null);
+                            } else {
+                                oidcRPCA.setJwks(
+                                        new String(Base64.getDecoder().decode(object), StandardCharsets.UTF_8));
+                            }
+                        }
+                    },
+                            MediaType.APPLICATION_JSON,
+                            "client-jwks");
+                    fields.add(jwks);
+
+                    AjaxTextFieldPanel jwksUri = new AjaxTextFieldPanel(
+                            "field", "jwksUri", new PropertyModel<>(clientAppTO, "jwksUri"), false);
+                    jwksUri.addValidator(new UrlValidator());
+                    fields.add(jwksUri);
+
+                    AjaxDropDownChoicePanel<OIDCClientAuthenticationMethod> tokenEndpointAuthenticationMethod =
+                            new AjaxDropDownChoicePanel<>(
+                                    "field",
+                                    "tokenEndpointAuthenticationMethod",
+                                    new PropertyModel<>(clientAppTO, "tokenEndpointAuthenticationMethod"),
+                                    false);
+                    tokenEndpointAuthenticationMethod.setChoices(List.of(OIDCClientAuthenticationMethod.values()));
+                    fields.add(tokenEndpointAuthenticationMethod);
+
+                    AjaxTextFieldPanel accessTokenMaxTimeToLive = new AjaxTextFieldPanel(
+                            "field", "accessTokenMaxTimeToLive",
+                            new PropertyModel<>(clientAppTO, "accessTokenMaxTimeToLive"), false);
+                    fields.add(accessTokenMaxTimeToLive);
+
+                    AjaxTextFieldPanel accessTokenTimeToKill = new AjaxTextFieldPanel(
+                            "field", "accessTokenTimeToKill", new PropertyModel<>(clientAppTO, "accessTokenTimeToKill"),
+                            false);
+                    fields.add(accessTokenTimeToKill);
+
+                    AjaxNumberFieldPanel<Long> accessTokenMaxActiveTokens = new AjaxNumberFieldPanel.Builder<Long>()
+                            .enableOnChange()
+                            .build("field", "accessTokenMaxActiveTokens", Long.class,
+                                    new PropertyModel<>(clientAppTO, "accessTokenMaxActiveTokens"));
+                    fields.add(accessTokenMaxActiveTokens);
+
+                    AjaxTextFieldPanel refreshTokenTimeToKill = new AjaxTextFieldPanel(
+                            "field", "refreshTokenTimeToKill",
+                            new PropertyModel<>(clientAppTO, "refreshTokenTimeToKill"), false);
+                    fields.add(refreshTokenTimeToKill);
+
+                    AjaxNumberFieldPanel<Long> refreshTokenMaxActiveTokens = new AjaxNumberFieldPanel.Builder<Long>()
+                            .enableOnChange()
+                            .build("field", "refreshTokenMaxActiveTokens", Long.class,
+                                    new PropertyModel<>(clientAppTO, "refreshTokenMaxActiveTokens"));
+                    fields.add(refreshTokenMaxActiveTokens);
+
+                    AjaxTextFieldPanel deviceTokenTimeToKill = new AjaxTextFieldPanel(
+                            "field", "deviceTokenTimeToKill", new PropertyModel<>(clientAppTO, "deviceTokenTimeToKill"),
+                            false);
+                    fields.add(deviceTokenTimeToKill);
+                    break;
+
+                case SAML2SP:
+                    AjaxTextFieldPanel entityId = new AjaxTextFieldPanel(
+                            "field", "entityId", new PropertyModel<>(clientAppTO, "entityId"), false);
+                    fields.add(entityId.setRequired(true));
+
+                    fields.add(new AjaxTextFieldPanel("field", "idp", new PropertyModel<>(clientAppTO, "idp") {
+
+                        private static final long serialVersionUID = -1476737401674143862L;
+
+                        @Override
+                        public String getObject() {
+                            return Optional.ofNullable(((SAML2SPClientAppTO) clientAppTO).getIdp()).
+                                    orElse(SAML2IdPEntityService.DEFAULT_OWNER);
+                        }
+                    }, false));
+
+                    fields.add(new AjaxTextFieldPanel("field", "metadataLocation",
+                            new PropertyModel<>(clientAppTO, "metadataLocation"), false).setRequired(true));
+
+                    fields.add(new AjaxTextFieldPanel(
+                            "field", "metadataSignatureLocation",
+                            new PropertyModel<>(clientAppTO, "metadataSignatureLocation"), false));
+
+                    AjaxDropDownChoicePanel<MetadataCriteriaDirection> metadataCriteriaDirection =
+                        new AjaxDropDownChoicePanel<>(
+                            "field", "metadataCriteriaDirection",
+                            new PropertyModel<>(clientAppTO, "metadataCriteriaDirection"),
+                            false);
+                    metadataCriteriaDirection.setChoices(List.of(MetadataCriteriaDirection.values()));
+                    fields.add(metadataCriteriaDirection);
+
+                    fields.add(new AjaxTextFieldPanel(
+                        "field", "metadataCriteriaPattern",
+                        new PropertyModel<>(clientAppTO, "metadataCriteriaPattern"), false));
+
+                    fields.add(new AjaxTextFieldPanel(
+                        "field", "subjectLocality",
+                        new PropertyModel<>(clientAppTO, "subjectLocality"), false));
+
+                    AjaxDropDownChoicePanel<SigningCredentialType> signingCredentialType =
+                        new AjaxDropDownChoicePanel<>(
+                        "field", "signingCredentialType",
+                            new PropertyModel<>(clientAppTO, "signingCredentialType"),
+                        false);
+                    signingCredentialType.setChoices(List.of(SigningCredentialType.values()));
+                    fields.add(signingCredentialType);
+
+                    AjaxDropDownChoicePanel<SAML2BindingType> logoutResponseBinding =
+                        new AjaxDropDownChoicePanel<>(
+                            "field", "logoutResponseBinding",
+                            new PropertyModel<>(clientAppTO, "logoutResponseBinding"),
+                            false);
+                    logoutResponseBinding.setChoices(List.of(SAML2BindingType.values()));
+                    fields.add(logoutResponseBinding);
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "logoutResponseEnabled",
+                        new PropertyModel<>(clientAppTO, "logoutResponseEnabled")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "requireSignedRoot",
+                        new PropertyModel<>(clientAppTO, "requireSignedRoot")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "signAssertions", new PropertyModel<>(clientAppTO, "signAssertions")).
+                                addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "signResponses", new PropertyModel<>(clientAppTO, "signResponses")).
+                                addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "encryptionOptional", new PropertyModel<>(clientAppTO, "encryptionOptional")).
+                                addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "encryptAssertions", new PropertyModel<>(clientAppTO, "encryptAssertions")).
+                                addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "encryptAttributes",
+                        new PropertyModel<>(clientAppTO, "encryptAttributes")).addRequiredLabel());
+                    
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingAssertionNameId",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingAssertionNameId")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationInResponseTo",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationInResponseTo")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingResponseInResponseTo",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingResponseInResponseTo")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationNotOnOrAfter",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationNotOnOrAfter")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationRecipient",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationRecipient")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationRecipient",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationRecipient")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                            "field", "skipGeneratingSubjectConfirmationAddress", 
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationAddress")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationNotBefore",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationNotBefore")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSubjectConfirmationNameId",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSubjectConfirmationNameId")).
+                        addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingNameIdQualifiers",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingNameIdQualifiers")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingTransientNameId",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingTransientNameId")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipValidatingAuthnRequest",
+                        new PropertyModel<>(clientAppTO, "skipValidatingAuthnRequest")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingServiceProviderNameIdQualifier",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingServiceProviderNameIdQualifier")).
+                            addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingAuthenticatingAuthority",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingAuthenticatingAuthority")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingNameIdQualifier",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingNameIdQualifier")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "skipGeneratingSessionNotOnOrAfter",
+                        new PropertyModel<>(clientAppTO, "skipGeneratingSessionNotOnOrAfter")).addRequiredLabel());
+
+                    fields.add(new AjaxTripleStateButtonPanel(
+                        "field", "validateMetadataCertificates",
+                        new PropertyModel<>(clientAppTO, "validateMetadataCertificates")).addRequiredLabel());
+
+                    fields.add(new AjaxTextFieldPanel(
+                            "field", "requiredAuthenticationContextClass",
+                            new PropertyModel<>(clientAppTO, "requiredAuthenticationContextClass"), false));
+
+                    AjaxDropDownChoicePanel<SAML2SPNameId> requiredNameIdFormat = new AjaxDropDownChoicePanel<>(
+                            "field", "requiredNameIdFormat", new PropertyModel<>(clientAppTO, "requiredNameIdFormat"),
+                            false);
+                    requiredNameIdFormat.setChoices(List.of(SAML2SPNameId.values()));
+                    requiredNameIdFormat.addRequiredLabel().setEnabled(true);
+                    fields.add(requiredNameIdFormat);
+
+                    fields.add(new AjaxNumberFieldPanel.Builder<Integer>().min(0).build(
+                            "field", "skewAllowance", Integer.class,
+                            new PropertyModel<>(clientAppTO, "skewAllowance")));
+
+                    fields.add(new AjaxTextFieldPanel(
+                            "field", "nameIdQualifier", new PropertyModel<>(clientAppTO, "nameIdQualifier"), false));
+
+                    AjaxTextFieldPanel assertionAudience = new AjaxTextFieldPanel(
+                            "panel", "assertionAudience", Model.of());
+                    assertionAudience.addValidator(new UrlValidator());
+                    fields.add(new MultiFieldPanel.Builder<String>(
+                            new PropertyModel<>(clientAppTO, "assertionAudiences")).build(
+                            "field",
+                            "assertionAudiences",
+                            assertionAudience));
+
+                    fields.add(new AjaxTextFieldPanel(
+                            "field", "serviceProviderNameIdQualifier",
+                            new PropertyModel<>(clientAppTO, "serviceProviderNameIdQualifier"), false));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("signingSignatureAlgorithms").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "signingSignatureAlgorithms"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("signingSignatureReferenceDigestMethods").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "signingSignatureReferenceDigestMethods"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("encryptionDataAlgorithms").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "encryptionDataAlgorithms"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("encryptionKeyAlgorithms").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "encryptionKeyAlgorithms"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("signingSignatureBlackListedAlgorithms").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "signingSignatureBlackListedAlgorithms"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+
+                    fields.add(new AjaxPalettePanel.Builder<XmlSecAlgorithm>().
+                            setName("encryptionBlackListedAlgorithms").build(
+                            "field",
+                            new PropertyModel<>(clientAppTO, "encryptionBlackListedAlgorithms"),
+                            new ListModel<>(List.of(XmlSecAlgorithm.values()))));
+                    break;
+
+                default:
+            }
+
+            add(new ListView<>("fields", fields) {
+
+                private static final long serialVersionUID = -9180479401817023838L;
+
+                @Override
+                protected void populateItem(final ListItem<Component> item) {
+                    item.add(item.getModelObject());
+                }
+            });
+        }
+
+        @Override
+        public void onSubmit(final AjaxRequestTarget target) {
+            try {
+                if (clientAppTO.getKey() == null) {
+                    clientAppRestClient.create(type, clientAppTO);
+                } else {
+                    clientAppRestClient.update(type, clientAppTO);
+                }
+                SyncopeConsoleSession.get().success(getString(Constants.OPERATION_SUCCEEDED));
+                Profile.this.modal.close(target);
+            } catch (Exception e) {
+                LOG.error("While creating/updating clientApp", e);
+                SyncopeConsoleSession.get().onException(e);
+            }
+            ((BaseWebPage) pageRef.getPage()).getNotificationPanel().refresh(target);
+        }
+    }
+}

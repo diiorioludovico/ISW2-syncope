@@ -1,0 +1,126 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.common.lib.to;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.syncope.common.lib.types.AnyTypeKind;
+
+@Schema(allOf = { AnyTO.class })
+public class GroupTO extends AnyTO implements TypeExtensionHolderTO {
+
+    private static final long serialVersionUID = -7785920258290147542L;
+
+    private String name;
+
+    private long userMembershipCount;
+
+    private long anyObjectMembershipCount;
+
+    private final List<TypeExtensionTO> typeExtensions = new ArrayList<>();
+
+    @JsonProperty("_class")
+    @Schema(name = "_class", requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "org.apache.syncope.common.lib.to.GroupTO")
+    @Override
+    public String getDiscriminator() {
+        return getClass().getName();
+    }
+
+    @Override
+    public String getType() {
+        return AnyTypeKind.GROUP.name();
+    }
+
+    @Override
+    public void setType(final String type) {
+        // fixed
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(final String name) {
+        this.name = name;
+    }
+
+    public long getUserMembershipCount() {
+        return userMembershipCount;
+    }
+
+    public void setUserMembershipCount(final long userMembershipCount) {
+        this.userMembershipCount = userMembershipCount;
+    }
+
+    public long getAnyObjectMembershipCount() {
+        return anyObjectMembershipCount;
+    }
+
+    public void setAnyObjectMembershipCount(final long anyObjectMembershipCount) {
+        this.anyObjectMembershipCount = anyObjectMembershipCount;
+    }
+
+    @JsonIgnore
+    @Override
+    public Optional<TypeExtensionTO> getTypeExtension(final String anyType) {
+        return typeExtensions.stream().filter(
+                typeExtension -> anyType != null && anyType.equals(typeExtension.getAnyType())).
+                findFirst();
+    }
+
+    @Override
+    public List<TypeExtensionTO> getTypeExtensions() {
+        return typeExtensions;
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().
+                appendSuper(super.hashCode()).
+                append(name).
+                append(typeExtensions).
+                build();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final GroupTO other = (GroupTO) obj;
+        return new EqualsBuilder().
+                appendSuper(super.equals(obj)).
+                append(name, other.name).
+                append(typeExtensions, other.typeExtensions).
+                build();
+    }
+}

@@ -1,0 +1,93 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.core.persistence.jpa.dao.repo;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import java.util.List;
+import org.apache.syncope.core.persistence.api.dao.ExternalResourceDAO;
+import org.apache.syncope.core.persistence.api.entity.AnyUtils;
+import org.apache.syncope.core.persistence.api.entity.AnyUtilsFactory;
+import org.apache.syncope.core.persistence.api.entity.PlainAttr;
+import org.apache.syncope.core.persistence.api.entity.PlainAttrValue;
+import org.apache.syncope.core.persistence.api.entity.PlainSchema;
+import org.apache.syncope.core.persistence.jpa.dao.SearchSupport;
+import org.apache.syncope.core.persistence.jpa.entity.JPARealm;
+import org.apache.syncope.core.provisioning.api.serialization.POJOHelper;
+
+public class MySQLPlainSchemaRepoExtImpl extends AbstractPlainSchemaRepoExt {
+
+    protected static final String HAS_ATTRS_QUERY = "SELECT COUNT(id) AS counts FROM %TABLE% "
+            + "WHERE JSON_CONTAINS(plainAttrs, '[{\"schema\":\"%SCHEMA%\"}]') ";
+
+    protected static final String HAS_ATTRS_ALIAS = " AS hasAttrs";
+
+    public MySQLPlainSchemaRepoExtImpl(
+            final AnyUtilsFactory anyUtilsFactory,
+            final ExternalResourceDAO resourceDAO,
+            final EntityManager entityManager) {
+
+        super(anyUtilsFactory, resourceDAO, entityManager);
+    }
+
+    @Override
+    public boolean hasAttrs(final PlainSchema schema) {
+        return hasAttrs(schema, HAS_ATTRS_QUERY, HAS_ATTRS_ALIAS);
+    }
+
+    @Override
+    public boolean existsPlainAttrUniqueValue(
+            final String realmKey,
+            final PlainSchema schema,
+            final PlainAttrValue attrValue) {
+
+        PlainAttr attr = new PlainAttr();
+        attr.setSchema(schema.getKey());
+        attr.setUniqueValue(attrValue);
+
+        Query query = entityManager.createNativeQuery(
+                "SELECT COUNT(id) FROM " + JPARealm.TABLE
+                + " WHERE JSON_CONTAINS(plainAttrs, '" + POJOHelper.serialize(List.of(attr)).replace("'", "''") + "')"
+                + " AND id <> ?1");
+        query.setParameter(1, realmKey);
+
+        return ((Number) query.getSingleResult()).longValue() > 0;
+    }
+
+    @Override
+    public boolean existsPlainAttrUniqueValue(
+            final AnyUtils anyUtils,
+            final String anyKey,
+            final PlainSchema schema,
+            final PlainAttrValue attrValue) {
+
+        PlainAttr attr = new PlainAttr();
+        attr.setSchema(schema.getKey());
+        attr.setUniqueValue(attrValue);
+
+        Query query = entityManager.createNativeQuery(
+                "SELECT COUNT(id) FROM "
+                + new SearchSupport(anyUtils.anyTypeKind()).field().name()
+                + " WHERE JSON_CONTAINS(plainAttrs, '" + POJOHelper.serialize(List.of(attr)).replace("'", "''") + "')"
+                + " AND id <> ?1");
+        query.setParameter(1, anyKey);
+
+        return ((Number) query.getSingleResult()).longValue() > 0;
+    }
+}

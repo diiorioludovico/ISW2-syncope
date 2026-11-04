@@ -1,0 +1,132 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.common.lib.request;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.syncope.common.lib.to.TypeExtensionTO;
+
+@Schema(allOf = { AnyUR.class })
+public class GroupUR extends AnyUR {
+
+    private static final long serialVersionUID = -460284378124440077L;
+
+    public static class Builder extends AnyUR.Builder<GroupUR, Builder> {
+
+        public Builder(final String key) {
+            super(key);
+        }
+
+        @Override
+        protected GroupUR newInstance() {
+            return new GroupUR();
+        }
+
+        public Builder name(final StringReplacePatchItem name) {
+            getInstance().setName(name);
+            return this;
+        }
+
+        public Builder typeExtension(final TypeExtensionTO typeExtension) {
+            getInstance().getTypeExtensions().add(typeExtension);
+            return this;
+        }
+
+        public Builder typeExtensions(final TypeExtensionTO... typeExtensions) {
+            getInstance().getTypeExtensions().addAll(List.of(typeExtensions));
+            return this;
+        }
+
+        public Builder typeExtensions(final Collection<TypeExtensionTO> typeExtensions) {
+            getInstance().getTypeExtensions().addAll(typeExtensions);
+            return this;
+        }
+    }
+
+    private StringReplacePatchItem name;
+
+    private final List<TypeExtensionTO> typeExtensions = new ArrayList<>();
+
+    @JsonProperty("_class")
+    @Schema(name = "_class", requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "org.apache.syncope.common.lib.request.GroupUR")
+    @Override
+    public String getDiscriminator() {
+        return getClass().getName();
+    }
+
+    public StringReplacePatchItem getName() {
+        return name;
+    }
+
+    public void setName(final StringReplacePatchItem name) {
+        this.name = name;
+    }
+
+    @JsonIgnore
+    public Optional<TypeExtensionTO> getTypeExtension(final String anyType) {
+        return typeExtensions.stream().filter(
+                typeExtension -> anyType != null && anyType.equals(typeExtension.getAnyType())).findFirst();
+    }
+
+    public List<TypeExtensionTO> getTypeExtensions() {
+        return typeExtensions;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return super.isEmpty()
+                && name == null && typeExtensions.isEmpty();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().
+                appendSuper(super.hashCode()).
+                append(name).
+                append(typeExtensions).
+                build();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final GroupUR other = (GroupUR) obj;
+        return new EqualsBuilder().
+                appendSuper(super.equals(obj)).
+                append(name, other.name).
+                append(typeExtensions, other.typeExtensions).
+                build();
+    }
+}

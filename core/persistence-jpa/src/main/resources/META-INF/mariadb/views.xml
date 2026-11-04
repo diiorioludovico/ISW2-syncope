@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  
+  <!-- user -->
+  <entry key="user_search">
+    CREATE VIEW user_search AS
+
+    SELECT u.id as any_id, u.*, attrs.*
+    FROM SyncopeUser u LEFT OUTER JOIN JSON_TABLE(COALESCE(plainAttrs, '[{}]'), '$[*]' COLUMNS (
+    plainSchema VARCHAR(255) PATH '$.schema',
+    NESTED PATH '$.values[*]' COLUMNS (
+    binaryValue LONGBLOB PATH '$.binaryValue',
+    booleanValue INT PATH '$.booleanValue',
+    dateValue VARCHAR(32) PATH '$.dateValue',
+    doubleValue DOUBLE PATH '$.doubleValue',
+    longValue BIGINT(20) PATH '$.longValue',
+    stringValue VARCHAR(255) PATH '$.stringValue'),
+    attrUniqueValue JSON PATH '$.uniqueValue')
+    ) AS attrs ON 1=1
+  </entry>
+  <entry key="user_search_urelationship">
+    CREATE VIEW user_search_urelationship AS
+
+    SELECT m.user_id AS any_id, m.anyObject_id AS right_any_id, m.type_id AS type
+    FROM URelationship m
+  </entry>
+  <entry key="user_search_umembership">
+    CREATE VIEW user_search_umembership AS
+
+    SELECT m.user_id AS any_id, g.id AS group_id, g.name AS group_name
+    FROM UMembership m, SyncopeGroup g
+    WHERE m.group_id = g.id
+  </entry>
+  <entry key="user_search_role">
+    CREATE VIEW user_search_role AS
+
+    SELECT ss.user_id AS any_id, ss.role_id AS role_id
+    FROM SyncopeUser_SyncopeRole ss
+  </entry>
+  <entry key="user_search_auxClass">
+    CREATE VIEW user_search_auxClass AS
+
+    SELECT st.user_id AS any_id, st.anyTypeClass_id AS anyTypeClass_id
+    FROM SyncopeUser_AnyTypeClass st
+  </entry>
+  <entry key="user_search_resource">
+    CREATE VIEW user_search_resource AS
+
+    SELECT st.user_id AS any_id, st.resource_id AS resource_id
+    FROM SyncopeUser_ExternalResource st
+  </entry>
+  <entry key="user_search_group_res">
+    CREATE VIEW user_search_group_res AS
+
+    SELECT m.user_id AS any_id, st.resource_id AS resource_id
+    FROM UMembership m, SyncopeGroup r, SyncopeGroup_ExternalResource st
+    WHERE m.group_id = r.id AND st.group_id = r.id
+  </entry>
+
+  <!-- anyObject -->
+  <entry key="anyObject_search">
+    CREATE VIEW anyObject_search AS
+ 
+    SELECT a.id as any_id, a.*, attrs.*
+    FROM AnyObject a LEFT OUTER JOIN JSON_TABLE(COALESCE(plainAttrs, '[{}]'), '$[*]' COLUMNS (
+    plainSchema VARCHAR(255) PATH '$.schema',
+    NESTED PATH '$.values[*]' COLUMNS (
+    binaryValue LONGBLOB PATH '$.binaryValue',
+    booleanValue INT PATH '$.booleanValue',
+    dateValue VARCHAR(32) PATH '$.dateValue',
+    doubleValue DOUBLE PATH '$.doubleValue',
+    longValue BIGINT(20) PATH '$.longValue',
+    stringValue VARCHAR(255) PATH '$.stringValue'),
+    attrUniqueValue JSON PATH '$.uniqueValue')
+    ) AS attrs ON 1=1
+  </entry>
+  <entry key="anyObject_search_arelationship">
+    CREATE VIEW anyObject_search_arelationship AS
+
+    SELECT m.left_anyObject_id AS any_id, m.right_anyObject_id AS right_any_id, m.type_id AS type
+    FROM ARelationship m
+  </entry>
+  <entry key="anyObject_search_amembership">
+    CREATE VIEW anyObject_search_amembership AS
+
+    SELECT m.anyObject_id AS any_id, g.id AS group_id, g.name AS group_name
+    FROM AMembership m, SyncopeGroup g
+    WHERE m.group_id = g.id
+  </entry>
+  <entry key="anyObject_search_auxClass">
+    CREATE VIEW anyObject_search_auxClass AS
+
+    SELECT st.anyObject_id AS any_id, st.anyTypeClass_id AS anyTypeClass_id
+    FROM AnyObject_AnyTypeClass st
+  </entry>
+  <entry key="anyObject_search_resource">
+    CREATE VIEW anyObject_search_resource AS
+
+    SELECT st.anyObject_id AS any_id, st.resource_id AS resource_id
+    FROM AnyObject_ExternalResource st
+  </entry>
+  <entry key="anyObject_search_group_res">
+    CREATE VIEW anyObject_search_group_res AS
+
+    SELECT m.anyObject_id AS any_id, st.resource_id AS resource_id
+    FROM AMembership m, SyncopeGroup r, SyncopeGroup_ExternalResource st
+    WHERE m.group_id = r.id AND st.group_id = r.id
+  </entry>
+
+  <!-- group -->
+  <entry key="group_search">
+    CREATE VIEW group_search AS
+ 
+    SELECT g.id as any_id, g.*, attrs.*
+    FROM SyncopeGroup g LEFT OUTER JOIN JSON_TABLE(COALESCE(plainAttrs, '[{}]'), '$[*]' COLUMNS (
+    plainSchema VARCHAR(255) PATH '$.schema',
+    NESTED PATH '$.values[*]' COLUMNS (
+    binaryValue LONGBLOB PATH '$.binaryValue',
+    booleanValue INT PATH '$.booleanValue',
+    dateValue VARCHAR(32) PATH '$.dateValue',
+    doubleValue DOUBLE PATH '$.doubleValue',
+    longValue BIGINT(20) PATH '$.longValue',
+    stringValue VARCHAR(255) PATH '$.stringValue'),
+    attrUniqueValue JSON PATH '$.uniqueValue')
+    ) AS attrs ON 1=1
+  </entry>
+  <entry key="group_search_grelationship">
+    CREATE VIEW group_search_grelationship AS
+
+    SELECT m.id AS any_id, m.anyObject_id AS right_any_id, m.type_id AS type
+    FROM GRelationship m
+  </entry>
+  <entry key="group_search_auxClass">
+    CREATE VIEW group_search_auxClass AS
+
+    SELECT st.group_id AS any_id, st.anyTypeClass_id AS anyTypeClass_id
+    FROM SyncopeGroup_AnyTypeClass st
+  </entry>
+  <entry key="group_search_resource">
+    CREATE VIEW group_search_resource AS
+
+    SELECT st.group_id AS any_id, st.resource_id AS resource_id
+    FROM SyncopeGroup_ExternalResource st
+  </entry>
+
+</properties>

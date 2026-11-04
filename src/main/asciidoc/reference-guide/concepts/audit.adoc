@@ -1,0 +1,45 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+//
+=== Audit
+
+The audit feature allows to capture <<audit-events,events>> occurring within the <<core>> and to store relevant information
+about them. +
+By default, events are written as entries into the `AuditEvent` table of the internal storage. +
+Audit events can also be processed differently, for example when using the <<elasticsearch>> extension.
+
+Once events are reported, they can be used as input for external tools.
+
+==== Audit Events
+
+The information provided for <<notification-events,notification events>> is also valid for audit events, including examples -
+except for the admin console <<console-configuration-audit,tooling>>, which is naturally distinct.
+
+==== Audit Event Processors
+
+In addition to default processing, events are also available for custom handling via Audit Event Processors.
+This allows to write implementations to route audit events to files, queues, sockets, syslog, etc.
+
+Custom implementations must implement the
+ifeval::["{snapshotOrRelease}" == "release"]
+https://github.com/apache/syncope/blob/syncope-{docVersion}/core/provisioning-api/src/main/java/org/apache/syncope/core/provisioning/api/AuditEventProcessor.java[AuditEventProcessor^]
+endif::[]
+ifeval::["{snapshotOrRelease}" == "snapshot"]
+https://github.com/apache/syncope/blob/4_1_X/core/provisioning-api/src/main/java/org/apache/syncope/core/provisioning/api/AuditEventProcessor.java[AuditEventProcessor^]
+endif::[]
+interface.

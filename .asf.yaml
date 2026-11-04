@@ -1,0 +1,39 @@
+github:
+  description: "Apache Syncope"
+  homepage: https://syncope.apache.org/
+  labels:
+    - security
+    - identity-management
+    - identity-provisioning
+    - identity-governance
+    - scim
+    - access-management
+    - sso
+    - authentication
+    - authorization
+    - saml2
+    - oauth2
+    - openidconnect
+    - identity-provider
+    - api-management
+    - api-gateway
+    - proxy
+    - enforce-policies
+    - request-routing
+    - service-mesh
+    - microservices
+  dependabot_alerts:  false
+  dependabot_updates: true
+  enabled_merge_buttons:
+    squash: true
+    squash_commit_message: PR_TITLE
+    merge: false
+    rebase: true
+
+notifications:
+  commits:              commits@syncope.apache.org
+  issues:               dev@syncope.apache.org
+  pullrequests_status:  dev@syncope.apache.org
+  pullrequests_comment: dev@syncope.apache.org
+  pullrequests_bot_dependabot: dev@syncope.apache.org
+  jira_options:         link label worklog

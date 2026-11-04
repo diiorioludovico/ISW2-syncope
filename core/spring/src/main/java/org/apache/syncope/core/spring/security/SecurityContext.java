@@ -1,0 +1,215 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.syncope.core.spring.security;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.KeyLengthException;
+import dev.samstevens.totp.code.CodeGenerator;
+import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.code.HashingAlgorithm;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Optional;
+import org.apache.syncope.common.lib.types.CipherAlgorithm;
+import org.apache.syncope.core.persistence.api.ApplicationContextProvider;
+import org.apache.syncope.core.persistence.api.EncryptorManager;
+import org.apache.syncope.core.persistence.api.dao.AccessTokenDAO;
+import org.apache.syncope.core.persistence.api.dao.RealmSearchDAO;
+import org.apache.syncope.core.persistence.api.dao.UserDAO;
+import org.apache.syncope.core.provisioning.api.rules.RuleProvider;
+import org.apache.syncope.core.spring.policy.DefaultRuleProvider;
+import org.apache.syncope.core.spring.security.jws.AccessTokenJWSSigner;
+import org.apache.syncope.core.spring.security.jws.AccessTokenJWSVerifier;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.blacklists.Blacklist;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.Role;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
+
+@EnableConfigurationProperties(SecurityProperties.class)
+@EnableAspectJAutoProxy(proxyTargetClass = false)
+@Configuration(proxyBeanMethods = false)
+public class SecurityContext {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SecurityContext.class);
+
+    private static String JWS_KEY = null;
+
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Bean
+    public static GrantedAuthorityDefaults grantedAuthorityDefaults() {
+        return new GrantedAuthorityDefaults(""); // Remove the ROLE_ prefix
+    }
+
+    private static String jwsKey(final JWSAlgorithm jwsAlgorithm, final SecurityProperties props) {
+        synchronized (LOG) {
+            if (JWS_KEY == null) {
+                String jwsKey = Optional.ofNullable(props.getJwsKey()).
+                        orElseThrow(() -> new IllegalArgumentException("No JWS key provided"));
+
+                if (JWSAlgorithm.Family.HMAC_SHA.contains(jwsAlgorithm)) {
+                    int minLength = jwsAlgorithm.equals(JWSAlgorithm.HS256)
+                            ? 256 / 8
+                            : jwsAlgorithm.equals(JWSAlgorithm.HS384)
+                            ? 384 / 8
+                            : 512 / 8;
+                    if (jwsKey.length() < minLength) {
+                        if (props.isProductionMode()) {
+                            throw new IllegalArgumentException(
+                                    "The configured key for %s must be at least %d characters".
+                                            formatted(jwsAlgorithm, minLength));
+                        }
+
+                        jwsKey = SecureRandomUtils.generateRandomPassword(minLength);
+                        props.setJwsKey(jwsKey);
+                        LOG.warn("The configured key for {} must be at least {} characters, generating random",
+                                jwsAlgorithm, minLength);
+                        LOG.debug("Using\nsecurity.jwsKey={}", jwsKey);
+                    }
+                }
+
+                JWS_KEY = jwsKey;
+            }
+        }
+        return JWS_KEY;
+    }
+
+    @Bean
+    public CipherAlgorithm adminPasswordAlgorithm(final SecurityProperties props) {
+        return props.getAdminPasswordAlgorithm();
+    }
+
+    @Bean
+    public JWSAlgorithm jwsAlgorithm(final SecurityProperties props) {
+        return JWSAlgorithm.parse(props.getJwsAlgorithm().toUpperCase());
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public DefaultCredentialChecker credentialChecker(
+            final SecurityProperties props,
+            final JWSAlgorithm jwsAlgorithm) throws IOException {
+
+        return new DefaultCredentialChecker(
+                props.getAesSecretKey(),
+                jwsKey(jwsAlgorithm, props),
+                props.getAdminPassword(),
+                props.getAnonymousKey(),
+                props.isProductionMode());
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public AccessTokenJWSVerifier accessTokenJWSVerifier(
+            final JWSAlgorithm jwsAlgorithm,
+            final SecurityProperties props)
+            throws JOSEException, NoSuchAlgorithmException, InvalidKeySpecException {
+
+        return new AccessTokenJWSVerifier(jwsAlgorithm, jwsKey(jwsAlgorithm, props));
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public AccessTokenJWSSigner accessTokenJWSSigner(
+            final JWSAlgorithm jwsAlgorithm,
+            final SecurityProperties props)
+            throws KeyLengthException, NoSuchAlgorithmException, InvalidKeySpecException {
+
+        return new AccessTokenJWSSigner(jwsAlgorithm, jwsKey(jwsAlgorithm, props));
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public SyncopeJWTSSOProvider syncopeJWTSSOProvider(
+            final SecurityProperties props,
+            final EncryptorManager encryptorManager,
+            final AccessTokenJWSVerifier accessTokenJWSVerifier,
+            final UserDAO userDAO,
+            final AccessTokenDAO accessTokenDAO) {
+
+        return new SyncopeJWTSSOProvider(props, encryptorManager, accessTokenJWSVerifier, userDAO, accessTokenDAO);
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public PasswordGenerator passwordGenerator() {
+        return new DefaultPasswordGenerator();
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public RuleProvider ruleProvider(final RealmSearchDAO realmSearchDAO) {
+        return new DefaultRuleProvider(realmSearchDAO);
+    }
+
+    @Bean
+    public ApplicationContextProvider applicationContextProvider() {
+        return new ApplicationContextProvider();
+    }
+
+    @Bean
+    public EncryptorManager encryptorManager(
+            final DefaultCredentialChecker credentialChecker,
+            final SecurityProperties securityProperties) {
+
+        return new DefaultEncryptorManager(credentialChecker, securityProperties);
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public Blacklist groovyBlackList(final ResourceLoader resourceLoader, final SecurityProperties props)
+            throws IOException {
+
+        try (InputStream in = resourceLoader.getResource(props.getGroovyBlacklist()).getInputStream();
+                Reader reader = new InputStreamReader(in)) {
+
+            return new Blacklist(reader);
+        }
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public HashingAlgorithm totpHashingAlgorithm() {
+        return HashingAlgorithm.SHA512;
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public CodeVerifier totpCodeVerifier(final HashingAlgorithm hashingAlgorithm) {
+        CodeGenerator codeGenerator = new DefaultCodeGenerator(hashingAlgorithm);
+        TimeProvider timeProvider = new SystemTimeProvider();
+        return new DefaultCodeVerifier(codeGenerator, timeProvider);
+    }
+}

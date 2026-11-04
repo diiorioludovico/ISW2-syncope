@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+  <properties>
+    <title>Building</title>
+    <author email="dev@syncope.apache.org">Apache Syncope Documentation Team</author>
+  </properties>
+
+  <body>    
+    <div class="toc_container">
+      <macro name="toc">
+        <param name="class" value="toc"/>
+      </macro>
+    </div>
+
+    <section name="Prerequisites">
+      <p>
+        <ul>
+          <li>JDK 21 for 4.0 and 4.1; JDK 25 for later versions</li>
+          <li>
+            Latest <a href="https://maven.apache.org/download.html">Apache Maven</a>
+          </li>
+          <li>
+            <a href="source-repository">Latest source code</a>
+          </li>
+        </ul>
+      </p>
+
+      <subsection name="Additional tools">
+        <p>
+          The <a href="https://www.gnu.org/software/patch/patch.html">patch</a> program is needed.
+        </p>
+        <p>
+          For Debian GNU / Linux and derivatives (as Ubuntu), install with
+          <source>sudo apt install patch</source>
+        </p>
+        <p>
+          On RPM yum style GNU / Linux systems, install with:
+          <source>sudo yum install patch</source>
+        </p>
+        <p>
+          On RPM dnf style GNU / Linux systems, install with:
+          <source>sudo dnf install patch</source>
+        </p>
+        <p>
+          On Windows you can find it in several distributions including
+          <a href="http://gnuwin32.sourceforge.net/packages/patch.htm">GNUWin32</a>
+        </p>        
+      </subsection>
+    </section>   
+
+    <section name="Building Syncope">
+      <p>
+        Before building Syncope, you need to setup an environment variable to give Maven more memory.
+      </p>
+      <p>
+        On Unix
+        <source>export MAVEN_OPTS="-Xms512m -Xmx1024m"</source>
+      </p>
+      <p>
+        On Windows
+        <source>set MAVEN_OPTS=-Xms512m -Xmx1024m</source>
+      </p>
+      <p>
+        To build Syncope simply execute (from within the top-level source directory):
+        <source>$ mvn clean install</source>
+      </p>
+      <p>
+        To build Syncope without running any test nor check do:
+        <source>$ mvn -PskipTests,all</source>
+      </p>
+      <p>
+        To build Syncope without running any test nor check, but generating Docker images, do:
+        <source>$ mvn -PskipTests,all,docker</source>
+      </p>
+
+      <subsection name="Code analysis">
+        After build, it is possible to examine code quality by submitting the generated reports to
+        a <a href="https://www.sonarqube.org/">SonarQube</a> instance.
+        Various installation methods are available, but the quicker seems to be via Docker:
+        <source>$ docker run -d --name sonarqube -p 9000:9000 -p 9092:9092 sonarqube</source>
+        Once SonarQube is up and runninig, submit the reports as follows:
+        <source>$ mvn sonar:sonar</source>
+        At the end, browse http://localhost:9000/dashboard?id=org.apache.syncope%3Asyncope to see results.
+      </subsection>
+    </section>
+    
+    <section name="Building documentation">
+      <p>
+        To build Syncope documentation execute (from within the top-level source directory):
+        <source>$ mvn -N -P site clean generate-resources</source>
+        The documentation artifacts are now be available under <tt>target/generated-docs/</tt>.
+      </p>
+    </section>
+
+    <section name="More build profiles">
+      <p>
+        Besides default, other Maven 
+        <a href="http://maven.apache.org/guides/introduction/introduction-to-profiles.html">build profiles</a> are
+        provided, for developer convenience.<br/>
+        Such profiles are limited to a specific module, hence Maven needs to be invoked from the corresponding 
+        subdirectory, not from top-level.
+      </p>
+      <subsection name="fit/core-reference">
+        <h4>Debug</h4>
+        Starts the full environment used by integration tests (with same components available when running new project
+        in <a href="docs/getting-started.html#paths-and-components">embedded mode</a>
+        but console) and enables remote JPDA debugging on port 8000 in the running Java EE container (Tomcat).
+        <source>$ mvn -Pdebug,all</source>
+        or, without extensions
+        <source>$ mvn -Pdebug</source>
+
+        <p>
+          Once started in debug mode, individual test methods can be executed as follows (the
+          <a href="https://maven.apache.org/surefire/maven-surefire-plugin/examples/single-test.html">
+            Maven Surefire Plugins rules</a> apply here):
+          <source>$ mvn test -Dtest=UserITCase#list</source>
+        </p>
+
+        <h4>HotSwapAgent</h4>
+        Similar to Debug, but with <a href="http://hotswapagent.org/">HotSwapAgent</a> features enabled.
+        <source>$ mvn -Photswap,all</source>
+
+        <h4>DBMSes</h4>
+        <div class="alert alert-warning">
+          <p>The build profiles enlisted below require <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+
+        <h5>MySQL</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Perform the full test suite against a real <a href="https://www.mysql.com/">MySQL</a> database via
+        <source>$ mvn -Pmysql-it</source> or <source>$ mvn -Pmyjson-it</source> (for JSON support)
+
+        <h5>MariaDB</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Perform the full test suite against a real <a href="https://mariadb.org/">MariaDB</a> database via
+        <source>$ mvn -Pmariadb-it</source> or <source>$ mvn -Pmajson-it</source> (for JSON support)
+
+        <h5>Oracle database</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Perform the full test suite against a real <a href="https://www.oracle.com/products/database/">Oracle</a> database via
+        <source>$ mvn -Poracle-it</source> or <source>$ mvn -Pojson-it</source> (for JSON support)
+
+        <h5>Neo4j</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Prform the full test suite against a real <a href="https://neo4j.com/">Neo4j</a> instance via
+        <source>$ mvn -Pneo4j-it</source>
+
+        <h4>Java EE containers</h4>
+
+        <h5>Payara</h5>
+        Perform the full test suite by deploying Syncope core in 
+        <a href="http://www.payara.fish/">Payara</a> via
+        <source>$ mvn -Ppayara-it</source>
+
+        <h5>Wildfly</h5>
+        Perform the full test suite by deploying Syncope core in 
+        <a href="http://www.wildfly.org">Wildfly</a> via
+        <source>$ mvn -Pwildfly-it</source>
+        
+        <h4>External search engines</h4>
+
+        <h5>Elasticsearch</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Perform the full test suite relying on a real <a href="https://www.elastic.co/">Elasticsearch</a> instance via
+        <source>$ mvn -Pelasticsearch-it</source>
+
+        <h5>OpenSearch</h5>
+        <div class="alert alert-warning">
+          <p>This build profile requires <a href="https://www.docker.com/">Docker</a> to work.</p>
+        </div>
+        Perform the full test suite relying on a real <a href="https://opensearch.org/">OpenSearch</a> instance via
+        <source>$ mvn -Popensearch-it</source>
+      </subsection>
+
+      <subsection name="fit/console-reference">
+        <h4>Debug</h4>
+        Starts the full environment used by core's integration tests (with same components available when running new 
+        project in <a href="docs/getting-started.html#paths-and-components">embedded mode</a>, including Console) and 
+        enables remote JPDA debugging on port 8000 in the running Java EE container (Tomcat).
+        <source>$ mvn -Pdebug</source>
+
+        <h4>HotSwapAgent</h4>
+        Similar to Debug, but with <a href="http://hotswapagent.org/">HotSwapAgent</a> features enabled.
+        <source>$ mvn -Photswap</source>
+      </subsection>
+      
+      <subsection name="fit/enduser-reference">
+        <h4>Debug</h4>
+        Starts the full environment used by core's integration tests (with same components available when running new 
+        project in <a href="docs/getting-started.html#paths-and-components">embedded mode</a>, including Console and 
+        Enduser) and enables remote JPDA debugging on port 8000 in the running Java EE container (Tomcat).
+        <source>$ mvn -Pdebug</source>
+
+        <h4>HotSwapAgent</h4>
+        Similar to Debug, but with <a href="http://hotswapagent.org/">HotSwapAgent</a> features enabled.
+        <source>$ mvn -Photswap</source>
+      </subsection>
+
+      <subsection name="fit/wa-reference">
+        <h4>Debug</h4>
+        Starts the full environment used by core's integration tests (with same components available when running new 
+        project in <a href="docs/getting-started.html#paths-and-components">embedded mode</a>, including Console, 
+        Enduser and WA) and enables remote JPDA debugging on port 8000 in the running Java EE container (Tomcat).
+        <source>$ mvn -Pdebug</source>
+
+        <h4>HotSwapAgent</h4>
+        Similar to Debug, but with <a href="http://hotswapagent.org/">HotSwapAgent</a> features enabled.
+        <source>$ mvn -Photswap</source>
+      </subsection>
+    </section>
+  </body>
+</document>
