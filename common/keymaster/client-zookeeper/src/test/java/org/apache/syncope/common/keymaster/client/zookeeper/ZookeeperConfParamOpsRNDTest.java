@@ -3,7 +3,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class ZookeeperConfParamOpsRegressionTest0 {
+public class ZookeeperConfParamOpsRNDTest {
 
     public static boolean debug = false;
 
@@ -21,7 +21,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test01() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test01");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test01");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -36,7 +36,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test02() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test02");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test02");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -51,7 +51,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test03() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test03");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test03");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         org.apache.curator.framework.CuratorFramework curatorFramework4 = null;
@@ -68,7 +68,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test04() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test04");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test04");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -83,7 +83,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test05() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test05");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test05");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -98,7 +98,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test06() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test06");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test06");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -113,7 +113,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test07() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test07");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test07");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         java.lang.Object obj4 = new java.lang.Object();
@@ -131,7 +131,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test08() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test08");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test08");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         java.lang.Object obj4 = new java.lang.Object();
@@ -149,7 +149,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test09() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test09");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test09");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         java.lang.Object obj4 = new java.lang.Object();
@@ -167,7 +167,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test10() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test10");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test10");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -182,7 +182,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test11() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test11");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test11");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         org.apache.curator.framework.CuratorFramework curatorFramework4 = null;
@@ -199,7 +199,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test12() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test12");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test12");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -214,7 +214,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test13() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test13");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test13");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         org.apache.curator.framework.CuratorFramework curatorFramework4 = null;
@@ -233,7 +233,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test14() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test14");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test14");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         java.lang.Object obj4 = new java.lang.Object();
@@ -251,7 +251,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test15() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test15");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test15");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         org.apache.curator.framework.CuratorFramework curatorFramework4 = null;
@@ -270,7 +270,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test16() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test16");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test16");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -285,7 +285,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test17() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test17");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test17");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         // The following exception was thrown during execution in test generation
@@ -300,7 +300,7 @@ public class ZookeeperConfParamOpsRegressionTest0 {
     @Test
     public void test18() throws Throwable {
         if (debug)
-            System.out.format("%n%s%n", "ZookeeperConfParamOpsRegressionTest0.test18");
+            System.out.format("%n%s%n", "ZookeeperConfParamOpsRNDTest.test18");
         org.apache.curator.framework.CuratorFramework curatorFramework0 = null;
         org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps zookeeperConfParamOps1 = new org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps(curatorFramework0);
         org.apache.curator.framework.CuratorFramework curatorFramework4 = null;
