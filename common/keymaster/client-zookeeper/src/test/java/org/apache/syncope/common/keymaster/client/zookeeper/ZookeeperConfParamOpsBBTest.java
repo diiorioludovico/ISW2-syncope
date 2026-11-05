@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 import java.util.concurrent.TimeUnit;
-import java.beans.Transient;
 import java.util.Map;
 
 class ZookeeperConfParamOpsBBTest {
