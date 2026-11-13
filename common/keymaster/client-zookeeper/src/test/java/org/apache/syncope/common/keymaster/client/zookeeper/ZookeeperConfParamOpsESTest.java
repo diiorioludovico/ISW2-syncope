@@ -26,7 +26,7 @@ import org.apache.zookeeper.data.Stat;
 
 
 
-public class ZookeeperConfParamOps_ESTest extends ZookeeperConfParamOps_ESTest_scaffolding {
+public class ZookeeperConfParamOpsESTest extends ZookeeperConfParamOps_ESTest_scaffolding {
 
   @Test(timeout = 4000)
   public void test0()  throws Throwable  {
