@@ -28,7 +28,7 @@ specific language governing permissions and limitations
 
 under the License.
 */
-package org.apache.syncope.common.keymaster.client.zookeeper_1;
+package org.apache.syncope.common.keymaster.client.zookeeper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

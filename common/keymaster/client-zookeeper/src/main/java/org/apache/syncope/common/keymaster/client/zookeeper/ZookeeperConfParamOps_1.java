@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.syncope.common.keymaster.client.zookeeper_3;
+package org.apache.syncope.common.keymaster.client.zookeeper;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Map;
@@ -32,9 +32,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements {@link ConfParamOps} via Apache Curator / Zookeeper.
  */
-public class ZookeeperConfParamOps_3 implements ConfParamOps {
+public class ZookeeperConfParamOps_1 implements ConfParamOps {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(ZookeeperConfParamOps_3.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(ZookeeperConfParamOps_1.class);
 
     protected static final JsonMapper MAPPER = JsonMapper.builder().findAndAddModules().build();
 
@@ -46,7 +46,7 @@ public class ZookeeperConfParamOps_3 implements ConfParamOps {
         return CONF_PATH + '/' + String.join("/", parts);
     }
 
-    public ZookeeperConfParamOps_3(final CuratorFramework client) {
+    public ZookeeperConfParamOps_1(final CuratorFramework client) {
         this.client = client;
     }
 

@@ -123,10 +123,10 @@ under the License.
         <configuration>
           <argLine>-Xms512m -Xmx1024m -Xss256k</argLine>
           <targetClasses>
-            <param>org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps</param>
+            <param>org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps_3</param>
           </targetClasses>
           <targetTests>
-            <param>org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOpsLLM1Test*</param>
+            <param>org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOps_3ESTest*</param>
           </targetTests>
           <outputFormats>
             <outputFormat>HTML</outputFormat>

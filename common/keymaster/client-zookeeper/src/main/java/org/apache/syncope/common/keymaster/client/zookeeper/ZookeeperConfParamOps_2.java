@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.syncope.common.keymaster.client.zookeeper_2;
+package org.apache.syncope.common.keymaster.client.zookeeper;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Map;

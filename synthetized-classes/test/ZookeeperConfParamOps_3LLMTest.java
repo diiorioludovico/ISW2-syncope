@@ -1,4 +1,4 @@
-package org.apache.syncope.common.keymaster.client.zookeeper_3;
+package org.apache.syncope.common.keymaster.client.zookeeper;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.curator.framework.CuratorFramework;
