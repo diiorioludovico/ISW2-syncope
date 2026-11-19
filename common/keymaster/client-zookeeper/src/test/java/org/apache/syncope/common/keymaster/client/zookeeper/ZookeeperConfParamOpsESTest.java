@@ -10,6 +10,16 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.Serializable;
+import org.junit.AssumptionViolatedException;
+import org.mockito.ArgumentMatchers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.LinkedList;
 import org.apache.curator.framework.CuratorFramework;
@@ -23,10 +33,51 @@ import org.apache.syncope.common.keymaster.client.zookeeper.ZookeeperConfParamOp
 import org.apache.zookeeper.data.Stat;
 
 
+public class ZookeeperConfParamOpsESTest {
 
+  /**
+     * Legacy string matcher: preserves matching of null String arguments.
+     * Inherited methods take precedence over static imports in the test class.
+     */
+    private static String anyString() {
+        return ArgumentMatchers.nullable(String.class);
+    }
 
+    /**
+     * Preserve the generated default-answer policy: an unstubbed non-void
+     * invocation invalidates the generated assumption, rather than returning null.
+     * Void methods need no default return value.
+     */
+    private static final class ViolatedAssumptionAnswer
+            implements Answer<Object>, Serializable {
 
-public class ZookeeperConfParamOpsESTest extends ZookeeperConfParamOps_ESTest_scaffolding {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Object answer(final InvocationOnMock invocation) {
+            if (invocation.getMethod().getReturnType() == Void.TYPE) {
+                return null;
+            }
+            throw new AssumptionViolatedException(
+                    "Unstubbed mock invocation invalidates the generated test assumption: "
+                    + invocation.getMethod().toGenericString());
+        }
+    }
+
+    /**
+     * Keep the generated check on the originating class of the caught exception.
+     * This is not merely an assertThrows(RuntimeException.class) replacement.
+     */
+    private static void verifyException(final String expectedOrigin, final Throwable exception) {
+        if (exception instanceof AssumptionViolatedException) {
+            throw (AssumptionViolatedException) exception;
+        }
+        assertNotNull("Expected a non-null exception", exception);
+        StackTraceElement[] trace = exception.getStackTrace();
+        assertTrue("The exception must have a stack trace", trace.length > 0);
+        assertEquals("Unexpected origin of the caught exception", expectedOrigin,
+                trace[0].getClassName());
+    }
 
   @Test(timeout = 4000)
   public void test0()  throws Throwable  {
